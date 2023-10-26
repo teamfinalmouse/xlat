@@ -1,7 +1,35 @@
-# XLAT Mouse Latency Measurement Tool
+# Finalmouse XLAT Mouse Latency Measurement Tool
+
+![XLAT logo](https://github.com/teamfinalmouse/xlat/blob/main/img/xlat_logo_black_33.png?raw=true)
+
+![Build Status](https://github.com/teamfinalmouse/xlat/actions/workflows/build.yml/badge.svg)
+![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 
 ## Introduction
 The XLAT Mouse Latency Measurement Tool by Finalmouse is engineered to accurately measure the latency of wired and wireless mice. This manual provides a step-by-step guide on how to set up and use this tool.
+
+![XLAT tool](img/xlat_picture.png)
+
+## Reason for creating XLAT
+The inception of the XLAT Mouse Latency Measurement Tool stemmed from a need to address the shortcomings of existing latency measurement methodologies, particularly concerning mouse latency. Here are the key motivators behind the creation of XLAT:
+
+1. **Specific Focus on Mouse Latency**:
+  - Previous methods were either rudimentary or did not focus specifically on mouse latency, making it difficult to obtain precise measurements for this critical aspect of system performance.
+
+2. **System-wide Latency Measurement**:
+  - Other techniques measured complete system latency, encompassing OS, GPU, and screen delay, which could obfuscate the true latency of the mouse itself.
+
+3. **Limitations of Audio-Based Methods**:
+  - Some methods relied on audio, which is too slow to measure the minuscule latency numbers associated with mouse clicks accurately.
+
+4. **Lack of Accessible, High-Quality Alternatives**:
+  - While accurate measurements could be obtained using high-end equipment like expensive logic analyzers, USB analyzers, or oscilloscopes, these tools are not only costly but also complex to use. There was a distinct lack of easy-to-use, high-quality, and affordable alternatives in the market.
+
+5. **Single Source of Truth**:
+  - XLAT is intended as a "single source of truth" for mouse latency measurement. It's repeatable, affordable, easy to use, and can be independently verified for accuracy since it's open source. This level of reliability and transparency positions XLAT as an invaluable tool for those seeking precise and trustworthy mouse latency measurements. Additionally, check out our [latency database](https://github.com/teamfinalmouse/xlat/wiki/Latency-database)
+
+XLAT was developed to fill these gaps, providing a specialized, accessible, and cost-effective solution for accurately measuring mouse latency, making it an invaluable tool for both enthusiasts and professionals alike.
+
 
 ## Required hardware
 Ensure you have at least the following hardware available:
