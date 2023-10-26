@@ -1,0 +1,49 @@
+name: Build XLAT firmware
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install arm-none-eabi-gcc toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-none-eabi
+
+    - name: Cache arm-none-eabi-gcc toolchain
+      uses: actions/cache@v2
+      with:
+        path: /usr/local/bin/arm-none-eabi-gcc
+        key: ${{ runner.os }}-arm-none-eabi-gcc-${{ hashFiles('**/build.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-arm-none-eabi-gcc-
+
+    - name: Create Build Directory
+      run: mkdir build
+
+    - name: CMake Generate
+      working-directory: build
+      run: |
+        cmake .. -DCMAKE_TOOLCHAIN_FILE=arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      working-directory: build
+      run: make -j8
+
+    - name: Upload Firmware
+      uses: actions/upload-artifact@v2
+      with:
+          name: firmware
+          path: build/xlat.elf
+
