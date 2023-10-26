@@ -57,5 +57,9 @@ XLAT measures click latency by accurately measuring the time between the mouse b
 ## Support
 For further assistance or inquiries, contact Finalmouse support via email at support@finalmouse.com or on Discord.
 
+## License
+The software is licensed under the GPLv3 license. See `COPYING` for more information.
+The libraries used are licensed under their respective licenses. See `LICENSES` / `LICENSE.txt` or similar for more information.
+
 ## Conclusion
 The XLAT Mouse Latency Measurement Tool provides an accurate method for measuring mouse latency, aiding in achieving optimal performance for a competitive edge.
