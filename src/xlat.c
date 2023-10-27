@@ -16,6 +16,7 @@
  */
 
 /* For LVGL / GFX */
+#include <math.h>
 #include "lvgl/lvgl.h"
 #include "tft/tft.h"
 #include "touchpad/touchpad.h"
@@ -26,11 +27,13 @@
 #include "usbh_hid.h"
 #include "stm32f7xx_hal_tim.h"
 #include "hardware_config.h"
+#include "stdio_glue.h"
 
 static uint32_t last_btn_gpio_timestamp = 0;
 static uint32_t last_usb_timestamp_us = 0;
 static uint32_t last_latency_us[LATENCY_TYPE_MAX];
-static uint64_t average_latency_us_sum[LATENCY_TYPE_MAX];
+static uint64_t average_latency_us_sum[LATENCY_TYPE_MAX]; // sum of all measurements
+static uint64_t average_latency_us_sum_sq[LATENCY_TYPE_MAX]; // sum of squares, for variance
 static uint32_t average_latency_us_count[LATENCY_TYPE_MAX];
 
 static volatile uint_fast8_t gpio_irq_producer = 0;
@@ -273,6 +276,21 @@ uint32_t xlat_get_average_latency(enum latency_type type)
     return (uint32_t)(average_latency_us_sum[type] / average_latency_us_count[type]);
 }
 
+uint32_t xlat_get_latency_variance(enum latency_type type)
+{
+    if (type >= LATENCY_TYPE_MAX) {
+        return 0;
+    }
+    uint64_t avg = average_latency_us_sum[type] / average_latency_us_count[type];
+    uint64_t avg_sq = average_latency_us_sum_sq[type] / average_latency_us_count[type];
+    return (uint32_t)(avg_sq - avg * avg);
+}
+
+uint32_t xlat_get_latency_standard_deviation(enum latency_type type)
+{
+    return (uint32_t)sqrt(xlat_get_latency_variance(type));
+}
+
 uint32_t xlat_get_last_usb_timestamp_us(void)
 {
     return last_usb_timestamp_us;
@@ -293,6 +311,7 @@ void xlat_add_latency_measurement(uint32_t latency_us, enum latency_type type)
     }
     last_latency_us[type] = latency_us;
     average_latency_us_sum[type] += latency_us;
+    average_latency_us_sum_sq[type] += latency_us * latency_us;
     average_latency_us_count[type]++;
 
 //    printf(">>> GPIO->USB latency: %5lu us, ", last_gpio_to_usb_latency_us);
@@ -304,6 +323,7 @@ void xlat_reset_latency(void)
     for (int i = 0; i < LATENCY_TYPE_MAX; i++) {
         last_latency_us[i] = 0;
         average_latency_us_sum[i] = 0;
+        average_latency_us_sum_sq[i] = 0;
         average_latency_us_count[i] = 0;
     }
 }
@@ -356,6 +376,17 @@ bool xlat_auto_trigger_level_is_high(void)
     return auto_trigger_level_high;
 }
 
+void xlat_print_measurement(void)
+{
+    // print the new measurement to the console in csv format
+    char buf[50];
+    snprintf(buf, sizeof(buf), "%lu;%lu;%lu;%lu\n",
+             xlat_get_latency_count(LATENCY_GPIO_TO_USB),
+             xlat_get_latency_us(LATENCY_GPIO_TO_USB),
+             xlat_get_average_latency(LATENCY_GPIO_TO_USB),
+             xlat_get_latency_standard_deviation(LATENCY_GPIO_TO_USB));
+    vcp_writestr(buf);
+}
 
 void xlat_init(void)
 {
@@ -364,4 +395,8 @@ void xlat_init(void)
     hw_exti_interrupts_enable();
     xlat_initialized = true;
     printf("XLAT initialized\n");
+
+    char buf[50];
+    snprintf(buf, sizeof(buf), "count;latency_us;avg_us;stdev_us\n");
+    vcp_writestr(buf);
 }

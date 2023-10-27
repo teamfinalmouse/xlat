@@ -22,6 +22,7 @@
 #include "tft/tft.h"
 #include "xlat.h"
 #include "gfx_settings.h"
+#include "stdio_glue.h"
 
 #define Y_CHART_SIZE_X 410
 #define Y_CHART_SIZE_Y 130
@@ -46,10 +47,12 @@ LV_IMG_DECLARE(xlat_logo);
 
 static void latency_label_update(void)
 {
-    lv_label_set_text_fmt(latency_label, "GPIO: %ld us, avg %ld us (#%lu)",
+    lv_label_set_text_fmt(latency_label, "#%lu: %ldus, avg %ldus, stdev %ldus",
+                          xlat_get_latency_count(LATENCY_GPIO_TO_USB),
                           xlat_get_latency_us(LATENCY_GPIO_TO_USB),
                           xlat_get_average_latency(LATENCY_GPIO_TO_USB),
-                          xlat_get_latency_count(LATENCY_GPIO_TO_USB));
+                          xlat_get_latency_standard_deviation(LATENCY_GPIO_TO_USB)
+                          );
     lv_obj_align_to(latency_label, chart, LV_ALIGN_OUT_TOP_MID, 0, 0);
 }
 
@@ -407,6 +410,8 @@ void gfx_task(void)
 
         // give LVGL mutex
         xSemaphoreGive(lvgl_mutex);
+
+        xlat_print_measurement();
     }
 }
 

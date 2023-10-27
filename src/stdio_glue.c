@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #include <stdio.h>
-#include "stm32f7xx_hal.h"
+#include <string.h>
 #include "main.h"
 
+// RTT will override these
 __weak int _write(int file, char *ptr, int len)
 {
     (void)file; /* Not used, avoid warning */
@@ -26,9 +26,31 @@ __weak int _write(int file, char *ptr, int len)
     return len;
 }
 
+// RTT will override these
 __weak int _read(int file, char *ptr, int len)
 {
     (void)file; /* Not used, avoid warning */
+    HAL_UART_Receive(&huart1, (uint8_t *) ptr, len, 100);
+    return len;
+}
+
+int vcp_write(char *ptr, int len)
+{
+    HAL_UART_Transmit(&huart1, (uint8_t *) ptr, len, 100);
+    return len;
+}
+
+// C-string must be null-terminated
+int vcp_writestr(char *ptr)
+{
+    size_t len = strlen(ptr);
+    HAL_UART_Transmit(&huart1, (uint8_t *) ptr, len, 100);
+    return (int)len;
+}
+
+// RTT will override these
+int vcp_read(char *ptr, int len)
+{
     HAL_UART_Receive(&huart1, (uint8_t *) ptr, len, 100);
     return len;
 }

@@ -140,9 +140,6 @@ set(USB_SOURCES
         src/usb/usbh_hid_mouse.c
         )
 
-#FILE(GLOB_RECURSE LVGL_Sources CONFIGURE_DEPENDS hal_stm_lvgl/*.c)
-
-
 add_definitions(
         -DSTM32
         -DSTM32F7
@@ -180,6 +177,15 @@ add_executable(${PROJECT_NAME}
         ${RTT_SOURCES}
         ${USB_SOURCES}
         )
+
+# Get the GIT SHA
+execute_process(
+        COMMAND git rev-parse --short HEAD
+        OUTPUT_VARIABLE GIT_SHA
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DGIT_SHA="${GIT_SHA}")
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE -DAPP_VERSION_MAJOR=${APP_VERSION_MAJOR})
 target_compile_definitions(${PROJECT_NAME} PRIVATE -DAPP_VERSION_MINOR=${APP_VERSION_MINOR})

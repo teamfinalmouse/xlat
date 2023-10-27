@@ -47,8 +47,12 @@ void xlat_usb_hid_event(void);
 uint32_t xlat_get_latency_us(enum latency_type type);
 uint32_t xlat_get_average_latency(enum latency_type type);
 uint32_t xlat_get_latency_count(enum latency_type type);
+uint32_t xlat_get_latency_variance(enum latency_type type);
+uint32_t xlat_get_latency_standard_deviation(enum latency_type type);
+
 void xlat_reset_latency(void);
 void xlat_add_latency_measurement(uint32_t latency_us, enum latency_type type);
+void xlat_print_measurement(void);
 
 void xlat_set_gpio_irq_holdoff_us(uint32_t us);
 uint32_t xlat_get_gpio_irq_holdoff_us(void);

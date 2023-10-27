@@ -22,6 +22,7 @@
 #include "hardware_config.h"
 #include "xlat.h"
 #include "gfx_main.h"
+#include "stdio_glue.h"
 
 
 osThreadId xlatTaskHandle;
@@ -55,9 +56,16 @@ void xlat_task(void const * argument)
 
     /* UART test */
     printf("\n");
-    printf("***************\n");
-    printf("Welcome to XLAT\n");
-    printf("***************\n\n");
+    printf("******************************\n");
+    printf("Welcome to XLAT v%s\n", APP_VERSION_FULL);
+    printf("******************************\n\n");
+
+    vcp_writestr("\n");
+    vcp_writestr("******************************\n");
+    vcp_writestr("Welcome to XLAT v");
+    vcp_writestr(APP_VERSION_FULL);
+    vcp_writestr("\n");
+    vcp_writestr("******************************\n\n");
 
     xlat_init();
 
