@@ -1,35 +1,20 @@
-/**
-  ******************************************************************************
-  * @file    usbh_hid.c
-  * @author  MCD Application Team
-  * @brief   This file is the HID Layer Handlers for USB Host HID class.
-  *
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2015 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  * @verbatim
-  *
-  *          ===================================================================
-  *                                HID Class  Description
-  *          ===================================================================
-  *           This module manages the HID class V1.11 following the "Device Class Definition
-  *           for Human Interface Devices (HID) Version 1.11 Jun 27, 2001".
-  *           This driver implements the following aspects of the specification:
-  *             - The Boot Interface Subclass
-  *             - The Mouse and Keyboard protocols
-  *
-  *  @endverbatim
-  *
-  ******************************************************************************
-  */
+/*
+ * Copyright (c) 2015 STMicroelectronics.
+ * Copyright (c) 2023 Finalmouse, LLC
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /* BSPDependencies
 - "stm32xxxxx_{eval}{discovery}{nucleo_144}.c"

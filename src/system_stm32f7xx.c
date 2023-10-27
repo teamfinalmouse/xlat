@@ -4,16 +4,16 @@
   * @author  MCD Application Team
   * @brief   CMSIS Cortex-M7 Device Peripheral Access Layer System Source File.
   *
-  *   This file provides two functions and one global variable to be called from 
+  *   This file provides two functions and one global variable to be called from
   *   user application:
-  *      - SystemInit(): This function is called at startup just after reset and 
+  *      - SystemInit(): This function is called at startup just after reset and
   *                      before branch to main program. This call is made inside
   *                      the "startup_stm32f7xx.s" file.
   *
   *      - SystemCoreClock variable: Contains the core clock (HCLK), it can be used
-  *                                  by the user application to setup the SysTick 
+  *                                  by the user application to setup the SysTick
   *                                  timer or configure other parameters.
-  *                                     
+  *
   *      - SystemCoreClockUpdate(): Updates the variable SystemCoreClock and must
   *                                 be called whenever the core clock is changed
   *                                 during program execution.
@@ -38,8 +38,8 @@
 
 /** @addtogroup stm32f7xx_system
   * @{
-  */  
-  
+  */
+
 /** @addtogroup STM32F7xx_System_Private_Includes
   * @{
   */
@@ -252,8 +252,8 @@ void SystemCoreClockUpdate(void)
 /**
   * @}
   */
-  
+
 /**
   * @}
-  */    
+  */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

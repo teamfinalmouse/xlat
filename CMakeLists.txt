@@ -171,7 +171,6 @@ add_executable(${PROJECT_NAME}
         src/syscalls.c
         src/system_stm32f7xx.c
         src/xlat.c
-        src/theme/lv_theme_xlat.c
         src/theme/xlat_logo_160px_width_idx8.c
         drivers/tft/tft.c
         drivers/touchpad/touchpad.c

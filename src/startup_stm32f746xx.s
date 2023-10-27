@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file      startup_stm32f746xx.s
   * @author    MCD Application Team
-  * @brief     STM32F746xx Devices vector table for GCC based toolchain. 
+  * @brief     STM32F746xx Devices vector table for GCC based toolchain.
   *            This module performs:
   *                - Set the initial SP
   *                - Set the initial PC == Reset_Handler,
@@ -23,7 +23,7 @@
   *
   ******************************************************************************
   */
-    
+
   .syntax unified
   .cpu cortex-m7
   .fpu softvfp
