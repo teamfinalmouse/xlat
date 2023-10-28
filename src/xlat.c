@@ -380,7 +380,7 @@ void xlat_print_measurement(void)
 {
     // print the new measurement to the console in csv format
     char buf[50];
-    snprintf(buf, sizeof(buf), "%lu;%lu;%lu;%lu\n",
+    snprintf(buf, sizeof(buf), "%lu;%lu;%lu;%lu\r\n",
              xlat_get_latency_count(LATENCY_GPIO_TO_USB),
              xlat_get_latency_us(LATENCY_GPIO_TO_USB),
              xlat_get_average_latency(LATENCY_GPIO_TO_USB),
@@ -397,6 +397,6 @@ void xlat_init(void)
     printf("XLAT initialized\n");
 
     char buf[50];
-    snprintf(buf, sizeof(buf), "count;latency_us;avg_us;stdev_us\n");
+    snprintf(buf, sizeof(buf), "count;latency_us;avg_us;stdev_us\r\n");
     vcp_writestr(buf);
 }
