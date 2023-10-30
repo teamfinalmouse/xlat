@@ -194,7 +194,7 @@ static void cb_evt_handler(lv_event_t * e)
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t * obj = lv_event_get_target(e);
     if (code == LV_EVENT_VALUE_CHANGED) {
-        xlat_set_hid_byte(lv_obj_get_state(obj) & LV_STATE_CHECKED);
+        xlat_set_using_reportid(lv_obj_get_state(obj) & LV_STATE_CHECKED);
         if (lv_obj_get_state(obj) & LV_STATE_CHECKED) {
             lv_checkbox_set_text(obj, "HID[1]");
         } else {

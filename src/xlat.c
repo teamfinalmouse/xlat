@@ -42,7 +42,7 @@ static volatile uint_fast8_t gpio_irq_consumer = 0;
 // SETTINGS
 volatile bool       xlat_initialized = false;
 static xlat_mode_t  xlat_mode = XLAT_MODE_CLICK;
-static bool         hid_byte_1 = false;
+static bool         hid_using_reportid = false;
 static bool         auto_trigger_level_high = false;
 
 // The Razer optical switches will constantly trigger the GPIO interrupt, while pressed
@@ -134,7 +134,7 @@ void xlat_usb_hid_event(void)
 
         if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
             // check reportId for ULX
-            if (hid_byte_1 && (hid_raw_data[0] != 0x01)) {
+            if (hid_using_reportid && (hid_raw_data[0] != 0x01)) {
                 // ignore
                 goto out;
             }
@@ -160,8 +160,8 @@ void xlat_usb_hid_event(void)
                     // Only on button PRESS
                     if (first_data) {
                         first_data = false;
-                    } else if (((byte0 > prev_byte_0) && !hid_byte_1) ||
-                               ((byte1 > prev_byte_1) && hid_byte_1)) {
+                    } else if (((byte0 > prev_byte_0) && !hid_using_reportid) ||
+                               ((byte1 > prev_byte_1) && hid_using_reportid)) {
                         // Save the captured USB event timestamp
                         last_usb_timestamp_us = hevt->timestamp;
 
@@ -179,8 +179,14 @@ void xlat_usb_hid_event(void)
             }
             else if (xlat_mode == XLAT_MODE_MOTION) {
                 // FOR MOTION:
+
+                // Where to find the X Y motion bytes?
+                // E.g. Zowie EC1-CW: 2 bytes X, 2 bytes Y, at position 1-2 and 2-3.
+                // E.g. ULX: 2 bytes X, 2 bytes Y, at position 2-3 and 4-5.
+                size_t base = hid_using_reportid ? 2 : 1;
+
                 // Check if there's any motion data (ULX):
-                if (hid_raw_data[2] | hid_raw_data[3] | hid_raw_data[4] | hid_raw_data[5]) {
+                if (hid_raw_data[base] | hid_raw_data[base+1] | hid_raw_data[base+2] | hid_raw_data[base+3]) {
                     // Save the captured USB event timestamp
                     last_usb_timestamp_us = hevt->timestamp;
 
@@ -328,14 +334,14 @@ void xlat_reset_latency(void)
     }
 }
 
-void xlat_set_hid_byte(bool use_byte_1)
+void xlat_set_using_reportid(bool use_reportid)
 {
-    hid_byte_1 = use_byte_1;
+    hid_using_reportid = use_reportid;
 }
 
-bool xlat_get_hid_byte(void)
+bool xlat_get_using_reportid(void)
 {
-    return hid_byte_1;
+    return hid_using_reportid;
 }
 
 static void xlat_timer_callback(TimerHandle_t xTimer)

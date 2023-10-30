@@ -63,8 +63,8 @@ uint32_t xlat_get_last_usb_timestamp_us(void);
 uint32_t xlat_get_last_button_timestamp_us(void);
 
 
-void xlat_set_hid_byte(bool use_byte_1);
-bool xlat_get_hid_byte(void);
+void xlat_set_using_reportid(bool use_reportid);
+bool xlat_get_using_reportid(void);
 
 void xlat_set_mode(enum xlat_mode mode);
 enum xlat_mode xlat_get_mode(void);

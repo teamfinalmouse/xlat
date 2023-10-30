@@ -59,9 +59,9 @@ static void event_handler(lv_event_t* e)
             bool is_on = lv_obj_has_state(obj, LV_STATE_CHECKED);
             printf("HID report byte: %d\n", is_on);
             if (is_on) {
-                xlat_set_hid_byte(true);
+                xlat_set_using_reportid(true);
             } else {
-                xlat_set_hid_byte(false);
+                xlat_set_using_reportid(false);
             }
         } else if (obj == (lv_obj_t *)debounce_dropdown) {
             // Debounce time changed
@@ -247,7 +247,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
 
 
     // Display current HID byte setting
-    if (xlat_get_hid_byte()) {
+    if (xlat_get_using_reportid()) {
         lv_obj_add_state((lv_obj_t *) hid_report_switch, LV_STATE_CHECKED);
     } else {
         lv_obj_clear_state((lv_obj_t *) hid_report_switch, LV_STATE_CHECKED);
