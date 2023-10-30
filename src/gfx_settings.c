@@ -211,9 +211,9 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
 
     // Version number label in the top right
     lv_obj_t *version_label = lv_label_create(settings_screen);
-    // Get the version number from APP_VERSION_*
-    char version_str[20];
-    sprintf(version_str, "XLAT v%d.%d.%d", APP_VERSION_MAJOR, APP_VERSION_MINOR, APP_VERSION_PATCH);
+    // Get the version number from APP_VERSION_* defines
+    char version_str[30];
+    sprintf(version_str, "XLAT v%s", APP_VERSION_FULL);
     lv_label_set_text(version_label, version_str);
     lv_obj_align(version_label, LV_ALIGN_TOP_RIGHT, -10, 10);
 
