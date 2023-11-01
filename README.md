@@ -1,16 +1,44 @@
-# Finalmouse XLAT Mouse Latency Measurement Tool
+<h1 align="center"> Finalmouse XLAT Mouse Latency Measurement Tool </h1>
+
+<div align="center">
 
 ![XLAT logo](https://github.com/teamfinalmouse/xlat/blob/main/img/xlat_logo_black_33.png?raw=true)
+
+</div>
 
 ![Build Status](https://github.com/teamfinalmouse/xlat/actions/workflows/build.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 
-## Introduction
+<br>
+
+# Table of Contents
+
+- [-Introduction](#-introduction)
+- [-Reason for creating XLAT](#-reason-for-creating-xlat)
+- [-Required hardware](#-required-hardware)
+- [-Setup Procedure](#-setup-procedure)
+   * [1. Power Supply:](#1-power-supply)
+   * [2. USB Connection: ](#2-usb-connection)
+   * [3. Special Cable Connection:](#3-special-cable-connection)
+   * [4. Device Recognition:](#4-device-recognition)
+- [-Accuracy of XLAT](#-accuracy-of-xlat)
+- [-How XLAT Measures Click Latency](#-how-xlat-measures-click-latency)
+- [User Interface](#user-interface)
+- [Measurement Procedure](#measurement-procedure)
+   * [1. Initiate Measurement:](#1-initiate-measurement)
+   * [2. Analyze Results:](#2-analyze-results)
+   * [3. Resetting and Re-testing:](#3-resetting-and-re-testing)
+- [Troubleshooting](#troubleshooting)
+- [-Support](#-support)
+- [License](#license)
+- [Conclusion](#conclusion)
+
+## 🙋‍♂️ Introduction
 The XLAT Mouse Latency Measurement Tool by Finalmouse is engineered to accurately measure the latency of wired and wireless mice. This manual provides a step-by-step guide on how to set up and use this tool.
 
 ![XLAT tool](img/xlat_picture.png)
 
-## Reason for creating XLAT
+## 🤔 Reason for creating XLAT
 The inception of the XLAT Mouse Latency Measurement Tool stemmed from a need to address the shortcomings of existing latency measurement methodologies, particularly concerning mouse latency. Here are the key motivators behind the creation of XLAT:
 
 1. **Specific Focus on Mouse Latency**:
@@ -31,14 +59,14 @@ The inception of the XLAT Mouse Latency Measurement Tool stemmed from a need to 
 XLAT was developed to fill these gaps, providing a specialized, accessible, and cost-effective solution for accurately measuring mouse latency, making it an invaluable tool for both enthusiasts and professionals alike.
 
 
-## Required hardware
+## 💻 Required hardware
 Ensure you have at least the following hardware available:
 1. Finalmouse XLAT or STM32F746G-DISCO devkit
 2. Micro-USB to USB-A Adapter
 3. Mini-USB Cable
 4. The USB mouse you want to test
 
-## Setup Procedure
+## 📗 Setup Procedure
 ### 1. Power Supply:
    - Connect the mini-USB cable to the XLAT device and a power source to supply power to the XLAT device.
 
@@ -54,14 +82,14 @@ Ensure you have at least the following hardware available:
 ### 4. Device Recognition:
    - Upon successful connection of the mouse via USB, the XLAT tool should display the device name along with the VID:PID (Vendor ID: Product ID) in the top right corner of the screen.
 
-## Accuracy of XLAT
+## 🎯 Accuracy of XLAT
 XLAT boasts a high degree of accuracy in its measurements, due to the firmware running on an onboard microcontroller. This low-level, lightweight design ensures highly accurate and reliable measurements.
 The firmware is open source, and it's contained in the git repository you're looking at right now.
 
-## How XLAT Measures Click Latency
+## 🤫 How XLAT Measures Click Latency
 XLAT measures click latency by accurately measuring the time between the mouse button click (measured electrically) and the corresponding USB packet coming in, sent by the mouse, which contains the button click data. This measurement is reported in microseconds (µs).
 
-## User Interface
+##  User Interface
 - **CLEAR Button**: Clears the measurement results and allows you to start over.
 - **REBOOT Button**: Reboots the device and re-initializes the connected USB device.
 - **SETTINGS Button**: Takes you to the settings page where you can configure the tool.
@@ -82,7 +110,7 @@ XLAT measures click latency by accurately measuring the time between the mouse b
 - **LCD Issues**:
     - If the LCD doesn't properly initialize or contains artifacts, reboot the device by pressing the "REBOOT" button or power cycling the XLAT device.
 
-## Support
+## 💁 Support
 For further assistance or inquiries, contact Finalmouse support via email at support@finalmouse.com or on Discord.
 
 ## License
