@@ -73,7 +73,7 @@ XLAT measures click latency by accurately measuring the time between the mouse b
    - (Provide any additional steps on how to initiate the measurement, e.g., software to launch, etc.)
 
 ### 2. Analyze Results:
-   - For every click registered, results will be displayed on screen immediately. You'll find the latest latency measurements, as well as the average and the amount of registered clicks.
+   - For every click registered, results will be displayed on screen immediately. You'll find the latest latency measurements, as well as both the average and standard deviation, along with the number of registered clicks. In addition, the data may be exported over a virtual COM port.
 
 ### 3. Resetting and Re-testing:
    - Use the "CLEAR" button to clear previous measurements and start over, or the "REBOOT" button if a re-initialization of the connected USB device is needed.
