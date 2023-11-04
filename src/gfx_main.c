@@ -326,47 +326,47 @@ static void gfx_xlat_gui(void)
     ///////////////////////////
 
     // Clear button
-    lv_obj_t * clear_btn = lv_btn_create(lv_scr_act());               /*Add a button the current screen*/
+    lv_obj_t * clear_btn = lv_btn_create(lv_scr_act());
     lv_obj_align(clear_btn, LV_ALIGN_BOTTOM_LEFT, 10, -10);
-    lv_obj_set_size(clear_btn, 80, 30);                              /*Set its size*/
-    lv_obj_add_event_cb(clear_btn, btn_clear_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+    lv_obj_set_size(clear_btn, 80, 30);
+    lv_obj_add_event_cb(clear_btn, btn_clear_event_cb, LV_EVENT_ALL, NULL);
 
     // Reset button label
-    lv_obj_t * reset_label = lv_label_create(clear_btn);            /*Add a label to the button*/
-    lv_label_set_text(reset_label, "CLEAR");                        /*Set the labels text*/
+    lv_obj_t * reset_label = lv_label_create(clear_btn);
+    lv_label_set_text(reset_label, "CLEAR");
     lv_obj_center(reset_label);
 
     // Reboot button
-    lv_obj_t * reboot_btn = lv_btn_create(lv_scr_act());               /*Add a button the current screen*/
+    lv_obj_t * reboot_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(reboot_btn, clear_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-    lv_obj_set_size(reboot_btn, 80, 30);                              /*Set its size*/
-    lv_obj_add_event_cb(reboot_btn, btn_reboot_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+    lv_obj_set_size(reboot_btn, 80, 30);
+    lv_obj_add_event_cb(reboot_btn, btn_reboot_event_cb, LV_EVENT_ALL, NULL);
 
     // Reboot button label
-    lv_obj_t * reboot_label = lv_label_create(reboot_btn);            /*Add a label to the button*/
-    lv_label_set_text(reboot_label, "REBOOT");                        /*Set the labels text*/
+    lv_obj_t * reboot_label = lv_label_create(reboot_btn);
+    lv_label_set_text(reboot_label, "REBOOT");
     lv_obj_center(reboot_label);
 
     // Settings button
-    lv_obj_t * settings_btn = lv_btn_create(lv_scr_act());               /*Add a button the current screen*/
+    lv_obj_t * settings_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(settings_btn, reboot_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-    lv_obj_set_size(settings_btn, 80, 30);                              /*Set its size*/
-    lv_obj_add_event_cb(settings_btn, btn_settings_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+    lv_obj_set_size(settings_btn, 80, 30);
+    lv_obj_add_event_cb(settings_btn, btn_settings_event_cb, LV_EVENT_ALL, NULL);
 
     // Settings button label
-    lv_obj_t * settings_label = lv_label_create(settings_btn);            /*Add a label to the button*/
-    lv_label_set_text(settings_label, "SETTINGS");                        /*Set the labels text*/
+    lv_obj_t * settings_label = lv_label_create(settings_btn);
+    lv_label_set_text(settings_label, "SETTINGS");
     lv_obj_center(settings_label);
 
     // Trigger button
-    lv_obj_t * trigger_btn = lv_btn_create(lv_scr_act());               /*Add a button the current screen*/
+    lv_obj_t * trigger_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(trigger_btn, settings_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-    lv_obj_set_size(trigger_btn, 80, 30);                              /*Set its size*/
-    lv_obj_add_event_cb(trigger_btn, btn_trigger_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+    lv_obj_set_size(trigger_btn, 80, 30);
+    lv_obj_add_event_cb(trigger_btn, btn_trigger_event_cb, LV_EVENT_ALL, NULL);
 
     // Trigger button label
-    trigger_label = lv_label_create(trigger_btn);            /*Add a label to the button*/
-    lv_label_set_text(trigger_label, "TRIGGER");                        /*Set the labels text*/
+    trigger_label = lv_label_create(trigger_btn);
+    lv_label_set_text(trigger_label, "TRIGGER");
     lv_obj_center(trigger_label);
 
     // Latency label

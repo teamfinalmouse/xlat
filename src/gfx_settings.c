@@ -24,7 +24,6 @@
 // Pointers to the widgets
 lv_obj_t *settings_screen;
 lv_dropdown_t *edge_dropdown;
-lv_switch_t *hid_report_switch;
 lv_slider_t *debounce_dropdown;
 lv_dropdown_t *trigger_dropdown;
 lv_dropdown_t *detection_dropdown;
@@ -54,15 +53,6 @@ static void event_handler(lv_event_t* e)
             // Detection edge changed
             uint16_t sel = lv_dropdown_get_selected(obj);
             hw_config_input_trigger(sel);
-        } else if (obj == (lv_obj_t *)hid_report_switch) {
-            // HID report byte changed
-            bool is_on = lv_obj_has_state(obj, LV_STATE_CHECKED);
-            printf("HID report byte: %d\n", is_on);
-            if (is_on) {
-                xlat_set_using_reportid(true);
-            } else {
-                xlat_set_using_reportid(false);
-            }
         } else if (obj == (lv_obj_t *)debounce_dropdown) {
             // Debounce time changed
             uint16_t sel = lv_dropdown_get_selected(obj);
@@ -134,20 +124,10 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_add_event_cb((struct _lv_obj_t *) edge_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
 
 
-    // HID Report Byte Label & Switch
-    lv_obj_t *hid_label = lv_label_create(settings_screen);
-    lv_label_set_text(hid_label, "HID Report Byte 1:");
-    lv_obj_align_to(hid_label, edge_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 20);
-
-    hid_report_switch = (lv_switch_t *) lv_switch_create(settings_screen);
-    // Will align this after determining max label width
-    lv_obj_add_event_cb((struct _lv_obj_t *) hid_report_switch, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
-
-
     // Debounce Time Label & Slider
     lv_obj_t *debounce_label = lv_label_create(settings_screen);
     lv_label_set_text(debounce_label, "Debounce Time:");
-    lv_obj_align_to(debounce_label, hid_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
+    lv_obj_align_to(debounce_label, edge_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
     debounce_dropdown = (lv_slider_t *) lv_dropdown_create(settings_screen);
     lv_dropdown_set_options((lv_obj_t *) debounce_dropdown, "20ms\n100ms\n200ms\n500ms\n1000ms");
@@ -183,7 +163,6 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
 
     // Determine max label width and align widgets accordingly
     int max_width = lv_obj_get_width(edge_label);
-    max_width = LV_MAX(max_width, lv_obj_get_width(hid_label));
     max_width = LV_MAX(max_width, lv_obj_get_width(debounce_label));
     max_width = LV_MAX(max_width, lv_obj_get_width(trigger_label));
 
@@ -191,19 +170,18 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
 
     // Now, align the widgets based on the maximum label width
     lv_obj_align((struct _lv_obj_t *) edge_dropdown, LV_ALIGN_DEFAULT, max_width + widget_gap, lv_obj_get_y(edge_label) - 10);
-    lv_obj_align((struct _lv_obj_t *) hid_report_switch, LV_ALIGN_DEFAULT, max_width + widget_gap, lv_obj_get_y(hid_label));
     lv_obj_align((struct _lv_obj_t *) debounce_dropdown, LV_ALIGN_DEFAULT, max_width + widget_gap, lv_obj_get_y(debounce_label) - 10);
     lv_obj_align((struct _lv_obj_t *) trigger_dropdown, LV_ALIGN_DEFAULT, max_width + widget_gap, lv_obj_get_y(trigger_label) - 10);
     lv_obj_align((struct _lv_obj_t *) detection_dropdown, LV_ALIGN_DEFAULT, max_width + widget_gap, lv_obj_get_y(detection_mode) - 10);
 
     // Print all y-values for debugging
     //printf("edge_label y: %d\n", lv_obj_get_y(edge_label));
-    //printf("hid_label y: %d\n", lv_obj_get_y(hid_label));
     //printf("debounce_label y: %d\n", lv_obj_get_y(debounce_label));
     //printf("trigger_label y: %d\n", lv_obj_get_y(trigger_label));
 
     // Back button
     lv_obj_t *btn_back = lv_btn_create(settings_screen);
+    lv_obj_set_size(btn_back, 80, 30);
     lv_obj_align(btn_back, LV_ALIGN_BOTTOM_LEFT, 10, -10);
     lv_obj_add_event_cb(btn_back, back_btn_event_handler, LV_EVENT_CLICKED, NULL);
     lv_obj_t *back_label = lv_label_create(btn_back);
@@ -245,13 +223,6 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     // Display current detection mode
     lv_dropdown_set_selected((lv_obj_t *) detection_dropdown, xlat_get_mode() == XLAT_MODE_MOTION);
 
-
-    // Display current HID byte setting
-    if (xlat_get_using_reportid()) {
-        lv_obj_add_state((lv_obj_t *) hid_report_switch, LV_STATE_CHECKED);
-    } else {
-        lv_obj_clear_state((lv_obj_t *) hid_report_switch, LV_STATE_CHECKED);
-    }
 
     // Display current detection edge
     lv_dropdown_set_selected((lv_obj_t *) edge_dropdown, hw_config_input_trigger_is_rising_edge());
