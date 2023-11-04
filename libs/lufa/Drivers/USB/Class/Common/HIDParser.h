@@ -253,9 +253,12 @@
 			typedef struct
 			{
 				uint8_t              TotalReportItems; /**< Total number of report items stored in the \c ReportItems array. */
+#ifndef HID_PARSER_STREAM_ONLY
 				HID_ReportItem_t     ReportItems[HID_MAX_REPORTITEMS]; /**< Report items array, including all IN, OUT
 			                                                            *   and FEATURE items.
+			                                                            *   Not used when HID_PARSER_STREAM_ONLY is defined.
 				                                                        */
+#endif
 				HID_CollectionPath_t CollectionPaths[HID_MAX_COLLECTIONS]; /**< All collection items, referenced
 				                                                            *   by the report items.
 				                                                            */

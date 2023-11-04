@@ -26,8 +26,6 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_core.h"
-#include "usbh_hid_mouse.h"
-#include "usbh_hid_keybd.h"
 
 /** @addtogroup USBH_LIB
   * @{
@@ -290,10 +288,12 @@ USBH_StatusTypeDef USBH_HID_GetReport(USBH_HandleTypeDef *phost,
                                       uint8_t reportLen);
 
 USBH_StatusTypeDef USBH_HID_GetHIDReportDescriptor(USBH_HandleTypeDef *phost,
-                                                   uint16_t length);
+                                                   uint16_t length,
+                                                   uint8_t interface);
 
 USBH_StatusTypeDef USBH_HID_GetHIDDescriptor(USBH_HandleTypeDef *phost,
-                                             uint16_t length);
+                                             uint16_t length,
+                                             uint8_t interface);
 
 USBH_StatusTypeDef USBH_HID_SetIdle(USBH_HandleTypeDef *phost,
                                     uint8_t duration,

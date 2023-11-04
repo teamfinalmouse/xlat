@@ -318,6 +318,8 @@
 				return __builtin_mfsr(AVR32_SR);
 				#elif (ARCH == ARCH_XMEGA)
 				return SREG;
+				#else
+				return 0;
 				#endif
 			}
 

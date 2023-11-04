@@ -2,6 +2,9 @@
              LUFA Library
      Copyright (C) Dean Camera, 2021.
 
+  Modifications for parsing as a stream only:
+     Copyright (C) Finalmouse, LLC, 2023.
+
   dean [at] fourwalledcubicle [dot] com
            www.lufa-lib.org
 */
@@ -281,11 +284,13 @@ uint8_t USB_ProcessHIDReport(const uint8_t* ReportData,
 
 					ParserData->LargestReportSizeBits = MAX(ParserData->LargestReportSizeBits, CurrReportIDInfo->ReportSizeBits[NewReportItem.ItemType]);
 
+#ifndef HID_PARSER_STREAM_ONLY
 					if (ParserData->TotalReportItems == HID_MAX_REPORTITEMS)
 					  return HID_PARSE_InsufficientReportItems;
 
 					memcpy(&ParserData->ReportItems[ParserData->TotalReportItems],
 					       &NewReportItem, sizeof(HID_ReportItem_t));
+#endif
 
 					if (!(ReportItemData & HID_IOF_CONSTANT) && CALLBACK_HIDParser_FilterHIDReportItem(&NewReportItem))
 					  ParserData->TotalReportItems++;

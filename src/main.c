@@ -28,14 +28,17 @@
 osThreadId xlatTaskHandle;
 osThreadId lvglTaskHandle;
 
-osPoolDef(hidevt_pool, 16, struct hid_event);               // Define memory pool
+osPoolDef(hidevt_pool, 16, hid_event_t);               // Define memory pool
 osPoolId  hidevt_pool;
 
-osMessageQDef(msgQUsbClick, 16, struct hid_event *);              // Define message queue
+osPoolDef(gfxevt_pool, 16, gfx_event_t);               // Define memory pool
+osPoolId  gfxevt_pool;
+
+osMessageQDef(msgQUsbClick, 16, hid_event_t *);              // Define message queue
 osMessageQId  msgQUsbClick;
 
-osMessageQDef(msgQNewData, 4, struct hid_event *);              // Define message queue
-osMessageQId  msgQNewData;
+osMessageQDef(msgQGfxTask, 4, gfx_event_t *);              // Define message queue
+osMessageQId  msgQGfxTask;
 
 // LVGL mutex
 SemaphoreHandle_t lvgl_mutex;
@@ -47,9 +50,10 @@ SemaphoreHandle_t lvgl_mutex;
   */
 void xlat_task(void const * argument)
 {
-    hidevt_pool = osPoolCreate(osPool(hidevt_pool));                 // create memory pool
+    hidevt_pool = osPoolCreate(osPool(hidevt_pool)); // create memory pool
+    gfxevt_pool = osPoolCreate(osPool(gfxevt_pool)); // create memory pool
     msgQUsbClick = osMessageCreate(osMessageQ(msgQUsbClick), NULL);  // create msg queue
-    msgQNewData = osMessageCreate(osMessageQ(msgQNewData), NULL);        // create msg queue
+    msgQGfxTask = osMessageCreate(osMessageQ(msgQGfxTask), NULL);    // create msg queue
 
     /* init code for USB_HOST */
     MX_USB_HOST_Init();

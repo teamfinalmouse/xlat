@@ -17,8 +17,6 @@
 
 /* For LVGL / GFX */
 #include <math.h>
-#include "lvgl/lvgl.h"
-#include "tft/tft.h"
 #include "touchpad/touchpad.h"
 #include "gfx_main.h"
 
@@ -28,6 +26,11 @@
 #include "stm32f7xx_hal_tim.h"
 #include "hardware_config.h"
 #include "stdio_glue.h"
+
+// LUFA HID Parser
+#define __INCLUDE_FROM_USB_DRIVER // NOLINT(*-reserved-identifier)
+#define __INCLUDE_FROM_HID_DRIVER // NOLINT(*-reserved-identifier)
+#include "Drivers/USB/Class/Common/HIDParser.h"
 
 static uint32_t last_btn_gpio_timestamp = 0;
 static uint32_t last_usb_timestamp_us = 0;
@@ -57,21 +60,144 @@ static bool         auto_trigger_level_high = false;
 static uint32_t gpio_irq_holdoff_us = GPIO_IRQ_HOLDOFF_US;
 static TimerHandle_t xlat_timer_handle;
 
-// gpio_irq_holdoff_us setter
-void xlat_set_gpio_irq_holdoff_us(uint32_t us)
+
+///////////////////////
+// PRIVATE FUNCTIONS //
+///////////////////////
+
+// Locations of the clicks and X Y motion bytes in the HID report
+hid_data_location_t button_location;
+hid_data_location_t x_location;
+hid_data_location_t y_location;
+
+static inline void hidreport_print_item(HID_ReportItem_t *item)
 {
-    printf("Setting GPIO IRQ holdoff to %lu us\n", us);
-    gpio_irq_holdoff_us = us;
+    printf("  BitOffset: %d\n", item->BitOffset);
+    switch (item->ItemType) {
+        case HID_REPORT_ITEM_In:
+            printf("  ItemType: In\n");
+            break;
+        case HID_REPORT_ITEM_Out:
+            printf("  ItemType: Out\n");
+            break;
+        case HID_REPORT_ITEM_Feature:
+            printf("  ItemType: Feature\n");
+            break;
+        default:
+            break;
+    }
+    printf("  ItemFlags: %d\n", item->ItemFlags);
+    printf("  ReportID: %d\n", item->ReportID);
+    printf("  Value: 0x%lx\n", item->Value);
+
+    printf("  Attributes:\n");
+    printf("    Usage.BitSize: %d\n", item->Attributes.BitSize);
+    switch (item->Attributes.Usage.Page) {
+        case 0x01:
+            printf("    Usage.Page:  Generic Desktop (0x0001)\n");
+            switch (item->Attributes.Usage.Usage) {
+                case 0x02:
+                    printf("    Usage.Usage: Mouse (0x0002)\n");
+                    break;
+
+                case 0x30:
+                    printf("    Usage.Usage: X (0x0030)\n");
+                    break;
+
+                case 0x31:
+                    printf("    Usage.Usage: Y (0x0031)\n");
+                    break;
+
+                case 0x38:
+                    printf("    Usage.Usage: Wheel (0x0038)\n");
+                    break;
+            }
+            break;
+
+        case 0x07:
+            printf("    Usage.Page:  Keyboard/Keypad (0x0007)\n");
+            break;
+
+        case 0x08:
+            printf("    Usage.Page:  LEDs (0x0008)\n");
+            break;
+
+        case 0x09:
+            printf("    Usage.Page:  Button (0x0009)\n");
+            break;
+
+        case 0x0C:
+            printf("    Usage.Page:  Consumer (0x000C)\n");
+            break;
+
+        default:
+            printf("  Usage.Page:  0x%04x (%d)\n", item->Attributes.Usage.Page, item->Attributes.Usage.Page);
+            break;
+    }
+    printf("    Usage.Usage: 0x%04x (%d)\n", item->Attributes.Usage.Usage, item->Attributes.Usage.Usage);
+    printf("    Unit.Type:     %lu\n", item->Attributes.Unit.Type);
+    printf("    Unit.Exponent: %d\n", item->Attributes.Unit.Exponent);
+    // Sign-extend the logical minimum and maximum, using Usage.BitSize
+    int32_t val = item->Attributes.Logical.Minimum;
+    val = (val << (32 - item->Attributes.BitSize)) >> (32 - item->Attributes.BitSize);
+    printf("    Unit.Logical.Minimum:     %ld\n", val);
+    val = item->Attributes.Logical.Maximum;
+    val = (val << (32 - item->Attributes.BitSize)) >> (32 - item->Attributes.BitSize);
+    printf("    Unit.Logical.Maximum:     %ld\n", val);
+    printf("    Unit.Physical.Minimum:    %lu\n", item->Attributes.Physical.Minimum);
+    printf("    Unit.Physical.Maximum:    %lu\n", item->Attributes.Physical.Maximum);
+
+    HID_CollectionPath_t *collection = item->CollectionPath;
+    printf("  Collection\n");
+    printf("    Type: %d\n", collection->Type);
+    printf("    Usage.Page:  0x%04x (%d)\n", collection->Usage.Page, collection->Usage.Page);
+    printf("    Usage.Usage: 0x%04x (%d)\n", collection->Usage.Usage, collection->Usage.Usage);
+    printf("\n");
 }
 
-uint32_t xlat_get_gpio_irq_holdoff_us(void)
+static void hidreport_check_item(HID_ReportItem_t *item)
 {
-    return gpio_irq_holdoff_us;
+    switch (item->Attributes.Usage.Page) {
+        case 0x01:
+            switch (item->Attributes.Usage.Usage) {
+                case 0x30:
+                    printf("    Usage.Usage: X (0x0030)\n");
+                    if (!x_location.found) {
+                        x_location.found = true;
+                        x_location.bit_index = item->BitOffset;
+                        x_location.bit_size = item->Attributes.BitSize;
+                    }
+                    break;
+
+                case 0x31:
+                    printf("    Usage.Usage: Y (0x0031)\n");
+                    if (!y_location.found) {
+                        y_location.found = true;
+                        y_location.bit_index = item->BitOffset;
+                        y_location.bit_size = item->Attributes.BitSize;
+                    }
+                    break;
+            }
+            break;
+
+        case 0x09:
+            printf("    Usage.Page:  Button (0x0009)\n");
+            if (!button_location.found) {
+                button_location.found = true;
+                button_location.bit_index = item->BitOffset;
+            }
+            break;
+
+        default:
+            break;
+    }
 }
 
-uint32_t xlat_counter_1mhz_get(void)
+// Mandatory HIDParser callback
+bool CALLBACK_HIDParser_FilterHIDReportItem(HID_ReportItem_t* const CurrentItem)
 {
-    return __HAL_TIM_GET_COUNTER(&XLAT_TIMx_handle);
+    hidreport_check_item(CurrentItem);
+    return true;
 }
 
 
@@ -79,17 +205,19 @@ static USBH_StatusTypeDef USBH_HID_GetRawData(USBH_HandleTypeDef *phost, uint8_t
 {
     HID_HandleTypeDef *HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData;
 
-    if (HID_Handle->length == 0U)
-    {
+    if (HID_Handle->length == 0U) {
         return USBH_FAIL;
     }
-    /*Fill report */
-    if (USBH_HID_FifoRead(&HID_Handle->fifo, hid_raw_data, HID_Handle->length) == HID_Handle->length)
-    {
+
+    /* Fill report */
+    if (USBH_HID_FifoRead(&HID_Handle->fifo,
+                          hid_raw_data,
+                          HID_Handle->length) == HID_Handle->length) {
         return USBH_OK;
     }
     return   USBH_FAIL;
 }
+
 
 static int calculate_gpio_to_usb_time(void)
 {
@@ -109,10 +237,101 @@ static int calculate_gpio_to_usb_time(void)
     xlat_add_latency_measurement(us > 0 ? us : 0, LATENCY_GPIO_TO_USB);
 
     // send a message to the gfx thread, to refresh the plot
-    osMessagePut(msgQNewData, us, 0);
+    struct gfx_event *evt;
+    evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message
+    evt->type = GFX_EVENT_MEASUREMENT;
+    evt->value = us;
+    osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
 
     return 0;
 }
+
+
+static void check_offsets(void)
+{
+    printf("\n");
+
+    if (hid_using_reportid) {
+        printf("[*] Using reportId, so actual report data is starting at index [1]\n");
+    }
+
+    if (button_location.found) {
+        if (button_location.bit_index % 8) {
+            printf("[!] Button found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", button_location.bit_index);
+            button_location.found = false;
+        } else {
+            button_location.byte_offset = button_location.bit_index / 8 + (size_t)hid_using_reportid;
+            printf("[*] Button found at bit index %d, which is byte %d\n", button_location.bit_index, button_location.bit_index / 8);
+            printf("    Button byte offset: %d\n", button_location.byte_offset);
+        }
+    } else {
+        button_location.found = false;
+        printf("[x] Button not found\n");
+    }
+
+    // X offset has to start at a byte boundary
+    if (x_location.found) {
+        if (x_location.bit_index % 8) {
+            printf("[!] X found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", x_location.bit_index);
+            x_location.found = false;
+        } else {
+            x_location.byte_offset = x_location.bit_index / 8 + (size_t)hid_using_reportid;
+            printf("[*] X found at bit index %d, which is byte %d\n", x_location.bit_index, x_location.bit_index / 8);
+            printf("    X size: %d bits, %d bytes\n", x_location.bit_size, x_location.bit_size / 8);
+            printf("    X byte offset: %d\n", x_location.byte_offset);
+        }
+    } else {
+        x_location.found = false;
+        printf("[x] X not found\n");
+    }
+
+    // Y offset does NOT have to start at a byte boundary,
+    // but it has to be contiguous to X
+    // and their total size has to be a multiple of 8
+    if (y_location.found) {
+        if ((y_location.bit_index % 8) &&
+                ((y_location.bit_index - x_location.bit_index) != x_location.bit_size)) {
+            printf("[!] Y found at bit index %d, which is not a multiple of 8, and not contiguous to X. Currently not supported by XLAT.\n",
+                   y_location.bit_index);
+            y_location.found = false;
+        } else {
+            y_location.byte_offset = y_location.bit_index / 8 + (size_t)hid_using_reportid;
+            printf("[*] Y found at bit index %d, which is byte %d\n", y_location.bit_index, y_location.bit_index / 8);
+            printf("    Y size: %d bits, %d bytes\n", y_location.bit_size, y_location.bit_size / 8);
+            printf("    Y byte offset: %d\n", y_location.byte_offset);
+        }
+    } else {
+        y_location.found = false;
+        printf("[x] Y not found\n");
+    }
+
+    printf("\n");
+}
+
+
+//////////////////////
+// PUBLIC FUNCTIONS //
+//////////////////////
+
+// gpio_irq_holdoff_us setter
+void xlat_set_gpio_irq_holdoff_us(uint32_t us)
+{
+    printf("Setting GPIO IRQ holdoff to %lu us\n", us);
+    gpio_irq_holdoff_us = us;
+}
+
+
+uint32_t xlat_get_gpio_irq_holdoff_us(void)
+{
+    return gpio_irq_holdoff_us;
+}
+
+
+uint32_t xlat_counter_1mhz_get(void)
+{
+    return __HAL_TIM_GET_COUNTER(&XLAT_TIMx_handle);
+}
+
 
 void xlat_usb_hid_event(void)
 {
@@ -128,9 +347,6 @@ void xlat_usb_hid_event(void)
     if (USBH_HID_GetDeviceType(phost) == HID_MOUSE)
     {  // if the HID is Mouse
         uint8_t hid_raw_data[64];
-        static uint8_t prev_byte_0 = 0;
-        static uint8_t prev_byte_1 = 0;
-        static bool first_data = 1;
 
         if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
             // check reportId for ULX
@@ -146,52 +362,65 @@ void xlat_usb_hid_event(void)
             printf("\n");
 #endif
             if (xlat_mode == XLAT_MODE_CLICK) {
-                // FOR BUTTONS:
+                // FOR BUTTONS/CLICKS:
+                // The correct location of button data is determined by parsing the HID descriptor
+                // This information is available in the button_location struct
 
-                // Either the first byte contains the button data, or the second byte
-                // For ULX, the first byte must be 0x01 (reportId) for mouse data, so we use the second byte
-                // For other mice, the first byte usually contains the button data
-                uint8_t byte0 = hid_raw_data[0];
-                uint8_t byte1 = hid_raw_data[1];
+                // First, check if the location was found
+                if (!button_location.found) {
+                    return;
+                }
+
+                static uint8_t prev_button = 0;
+                uint8_t button = hid_raw_data[button_location.byte_offset];
 
                 // Check if the button state has changed
-                if (byte0 != prev_byte_0 || byte1 != prev_byte_1) {
-                    // Use USB trigger
-                    // Only on button PRESS
-                    if (first_data) {
-                        first_data = false;
-                    } else if (((byte0 > prev_byte_0) && !hid_using_reportid) ||
-                               ((byte1 > prev_byte_1) && hid_using_reportid)) {
+                if (button != prev_button) {
+                    // Only measure on button PRESS, not on RELEASE
+                    if (button > prev_button) {
                         // Save the captured USB event timestamp
                         last_usb_timestamp_us = hevt->timestamp;
 
                         printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-                        printf("Button: B=0x%02x%02x @ %lu\n",
-                               hid_raw_data[0], hid_raw_data[1], hevt->timestamp);
+                        printf("Button: B=0x%02x @ %lu\n", button, hevt->timestamp);
 
                         calculate_gpio_to_usb_time();
                     }
                 }
 
-                // save previous state
-                prev_byte_0 = byte0;
-                prev_byte_1 = byte1;
+                // Save previous state
+                prev_button = button;
             }
             else if (xlat_mode == XLAT_MODE_MOTION) {
                 // FOR MOTION:
+                // The correct location of button data is determined by parsing the HID descriptor
+                // This information is available in the [x|y]_location structs
 
-                // Where to find the X Y motion bytes?
-                // E.g. Zowie EC1-CW: 2 bytes X, 2 bytes Y, at position 1-2 and 2-3.
-                // E.g. ULX: 2 bytes X, 2 bytes Y, at position 2-3 and 4-5.
-                size_t base = hid_using_reportid ? 2 : 1;
+                // First, check if the locations were found
+                if ((!x_location.found) || (!y_location.found)) {
+                    return;
+                }
 
-                // Check if there's any motion data (ULX):
-                if (hid_raw_data[base] | hid_raw_data[base+1] | hid_raw_data[base+2] | hid_raw_data[base+3]) {
-                    // Save the captured USB event timestamp
-                    last_usb_timestamp_us = hevt->timestamp;
+                // Check X and Y data is contiguous
+                if ((x_location.byte_offset + x_location.bit_size / 8) != y_location.byte_offset) {
+                    return;
+                }
 
-                    if (!calculate_gpio_to_usb_time()) {
-                        printf("[%5lu] MOTION@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+                size_t start_idx = x_location.byte_offset;
+                size_t length = (x_location.bit_size + y_location.bit_size) / 8;
+
+                // Loop over the data and check for non-zero values
+                // In case there is non-zero data, call calculate_gpio_to_usb_tine();
+                for (size_t idx = start_idx; idx < start_idx + length; idx++) {
+                    if (hid_raw_data[idx]) {
+                        // Save the captured USB event timestamp
+                        last_usb_timestamp_us = hevt->timestamp;
+
+                        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+                        printf("Motion: X=0x%02x, Y=0x%02x @ %lu\n", hid_raw_data[x_location.byte_offset], hid_raw_data[y_location.byte_offset], hevt->timestamp);
+
+                        calculate_gpio_to_usb_time();
+                        break; // stop at the first bit of motion in this report
                     }
                 }
             }
@@ -392,6 +621,57 @@ void xlat_print_measurement(void)
              xlat_get_average_latency(LATENCY_GPIO_TO_USB),
              xlat_get_latency_standard_deviation(LATENCY_GPIO_TO_USB));
     vcp_writestr(buf);
+}
+
+
+void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size)
+{
+    HID_ReportInfo_t report_info; // Only 333b when using HID_PARSER_STREAM_ONLY
+
+    printf("HID descriptor size: %d\n", desc_size);
+
+    int err = USB_ProcessHIDReport(desc, desc_size, &report_info);
+    printf("USB_ProcessHIDReport: %d\n", err);
+    if (err != HID_PARSE_Successful) {
+        return;
+    }
+
+    // Check if using reportIDs:
+    hid_using_reportid = report_info.UsingReportIDs;
+    printf("Using reportIDs: %d\n", hid_using_reportid);
+
+    // Find click and motion data offsets
+    check_offsets();
+
+    // Send a message to the gfx thread, to refresh the device info
+    struct gfx_event *evt;
+    evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message
+    evt->type = GFX_EVENT_HID_DEVICE_CONNECTED;
+    evt->value = 0;
+    osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
+}
+
+hid_data_location_t * xlat_get_button_location(void)
+{
+    return &button_location;
+}
+
+hid_data_location_t * xlat_get_x_location(void)
+{
+    return &x_location;
+}
+
+hid_data_location_t * xlat_get_y_location(void)
+{
+    return &y_location;
+}
+
+void xlat_clear_locations(void)
+{
+    printf("Clearing locations\n");
+    button_location.found = false;
+    x_location.found = false;
+    y_location.found = false;
 }
 
 void xlat_init(void)

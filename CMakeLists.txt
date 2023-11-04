@@ -141,9 +141,7 @@ set(USB_Sources
         src/usb/usbh_ioreq.c
         src/usb/usbh_pipes.c
         src/usb/usbh_hid.c
-        src/usb/usbh_hid_keybd.c
-        src/usb/usbh_hid_mouse.c
-        )
+)
 
 add_definitions(
         -DSTM32
@@ -154,6 +152,7 @@ add_definitions(
         -DUSE_HAL_DRIVER
         -DUSB_CAN_BE_HOST
         -DARCH=ARCH_CUSTOM
+        -DUSE_LUFA_CONFIG_HEADER
 )
 
 add_subdirectory(libs/lvgl)
