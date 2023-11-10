@@ -32,6 +32,7 @@
 USBH_HandleTypeDef hUsbHostHS;
 static char vidpid_string[128];
 static char product_string[110] = {0};
+static char manuf_string[110] = {0};
 
 /*
  * user callback declaration
@@ -111,10 +112,25 @@ void usb_host_set_product_string(const char * product)
     product_string[sizeof(product_string) - 1] = '\0';
 }
 
+
 char * usb_host_get_product_string(void)
 {
     return product_string;
 }
+
+
+void usb_host_set_manuf_string(const char * manuf)
+{
+    snprintf(manuf_string, sizeof(manuf_string), "%s", manuf);
+    manuf_string[sizeof(manuf_string) - 1] = '\0';
+}
+
+
+char * usb_host_get_manuf_string(void)
+{
+    return manuf_string;
+}
+
 
 char * usb_host_get_vidpid_string(void)
 {

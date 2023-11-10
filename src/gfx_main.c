@@ -36,6 +36,7 @@ lv_color_t lv_color_lightblue = LV_COLOR_MAKE(0xa6, 0xd1, 0xd1);
 static lv_obj_t * chart;
 static lv_obj_t * latency_label;
 static lv_obj_t * productname_label;
+static lv_obj_t * manufacturer_label;
 static lv_obj_t * vidpid_label;
 static lv_chart_cursor_t * chart_cursor_usb;
 //static lv_chart_cursor_t * chart_cursor_avg;
@@ -61,13 +62,16 @@ static void latency_label_update(void)
     lv_obj_align_to(latency_label, chart, LV_ALIGN_OUT_TOP_MID, 0, 0);
 }
 
-void gfx_set_device_label(const char * name, const char *vidpid)
+void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid)
 {
     lv_label_set_text(vidpid_label, vidpid);
     lv_obj_align(vidpid_label, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-    lv_label_set_text(productname_label, name);
-    lv_obj_align_to(productname_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -10, 0);
+    lv_label_set_text(productname_label, productname);
+    lv_obj_align_to(productname_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
+
+    lv_label_set_text(manufacturer_label, manufacturer);
+    lv_obj_align_to(manufacturer_label, productname_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
 }
 
 static void btn_clear_event_cb(lv_event_t * e)
@@ -310,6 +314,11 @@ static void gfx_xlat_gui(void)
     lv_label_set_text(productname_label, "No USB device connected");
     lv_obj_align_to(productname_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -10, 0);
 
+    // Manufacturer label
+    manufacturer_label = lv_label_create(lv_scr_act());
+    lv_label_set_text(manufacturer_label, "");
+    lv_obj_align_to(manufacturer_label, productname_label, LV_ALIGN_OUT_LEFT_BOTTOM, -10, 0);
+
     // HID byte0/1 checkbox
     hid_offsets_label = lv_label_create(lv_scr_act());
     gfx_set_offsets_text();
@@ -428,12 +437,14 @@ void gfx_task(void)
                 break;
 
             case GFX_EVENT_HID_DEVICE_CONNECTED:
-                gfx_set_device_label(usb_host_get_product_string(), usb_host_get_vidpid_string());
+                gfx_set_device_label(usb_host_get_manuf_string(),
+                                     usb_host_get_product_string(),
+                                     usb_host_get_vidpid_string());
                 gfx_set_offsets_text();
                 break;
 
             case GFX_EVENT_HID_DEVICE_DISCONNECTED:
-                gfx_set_device_label("No USB device connected", "");
+                gfx_set_device_label("", "No USB device connected", "");
                 gfx_set_offsets_text();
                 break;
         }
