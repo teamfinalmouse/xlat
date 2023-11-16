@@ -373,6 +373,8 @@ static inline void trigger_thread_by_os_message(USBH_HandleTypeDef *phost)
   */
 /* static */ USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
 {
+    // collect the timestamp as early as possible
+    uint32_t timestamp = xlat_counter_1mhz_get();
     USBH_StatusTypeDef status = USBH_OK;
     HID_HandleTypeDef *HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData;
     uint32_t XferSize;
@@ -466,7 +468,6 @@ static inline void trigger_thread_by_os_message(USBH_HandleTypeDef *phost)
 
                 //if ((HID_Handle->DataReady == 0U) && (XferSize != 0U)) {
                 if (XferSize != 0U) {
-                    uint32_t timestamp = xlat_counter_1mhz_get();
                     (void)USBH_HID_FifoWrite(&HID_Handle->fifo, HID_Handle->pData, HID_Handle->length);
                     USBH_HID_EventCallback(phost, timestamp); // triggers the main thread with the timestamp of this event
                     HID_Handle->state = USBH_HID_GET_DATA;
