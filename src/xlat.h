@@ -57,6 +57,9 @@ void xlat_print_measurement(void);
 void xlat_set_gpio_irq_holdoff_us(uint32_t us);
 uint32_t xlat_get_gpio_irq_holdoff_us(void);
 
+uint16_t xlat_set_auto_trigger_count(uint16_t count);
+uint16_t xlat_get_auto_trigger_count(void);
+
 uint32_t xlat_counter_1mhz_get(void);
 
 uint32_t xlat_get_last_usb_timestamp_us(void);

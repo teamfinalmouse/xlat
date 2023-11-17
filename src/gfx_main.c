@@ -116,14 +116,14 @@ void auto_trigger_callback(lv_timer_t * timer)
 
 static void btn_trigger_event_cb(lv_event_t * e)
 {
-    static int32_t count;
+    static uint16_t count;
 
     lv_event_code_t code = lv_event_get_code(e);
 
     if (code == LV_EVENT_CLICKED) {
         // Trigger a measurement
         printf("AutoTrigger activated\n");
-        count = 1000;
+        count = xlat_get_auto_trigger_count();
         lv_timer_t * timer = lv_timer_create(auto_trigger_callback, 149,  &count);
         lv_timer_set_repeat_count(timer, count);
     }

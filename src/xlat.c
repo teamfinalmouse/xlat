@@ -56,6 +56,7 @@ static bool         auto_trigger_level_high = false;
 #define GPIO_IRQ_HOLDOFF_US (50 * 1000)  // 20ms;
 static uint32_t gpio_irq_holdoff_us = GPIO_IRQ_HOLDOFF_US;
 static TimerHandle_t xlat_timer_handle;
+static uint16_t trigger_count = 1000;
 
 // gpio_irq_holdoff_us setter
 void xlat_set_gpio_irq_holdoff_us(uint32_t us)
@@ -67,6 +68,14 @@ void xlat_set_gpio_irq_holdoff_us(uint32_t us)
 uint32_t xlat_get_gpio_irq_holdoff_us(void)
 {
     return gpio_irq_holdoff_us;
+}
+uint16_t xlat_set_auto_trigger_count(uint16_t count)
+{
+    trigger_count = count;
+}
+uint16_t xlat_get_auto_trigger_count(void)
+{
+    return trigger_count;
 }
 
 uint32_t xlat_counter_1mhz_get(void)

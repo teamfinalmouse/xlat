@@ -28,6 +28,7 @@ lv_switch_t *hid_report_switch;
 lv_slider_t *debounce_dropdown;
 lv_dropdown_t *trigger_dropdown;
 lv_dropdown_t *detection_dropdown;
+lv_dropdown_t *count_dropdown;
 lv_obj_t *prev_screen = NULL; // Pointer to store previous screen
 
 LV_IMG_DECLARE(xlat_logo);
@@ -109,7 +110,37 @@ static void event_handler(lv_event_t* e)
                 // Motion
                 xlat_set_mode(XLAT_MODE_MOTION);
             }
-        }
+        } else if (obj == (lv_obj_t *)count_dropdown) {
+		// Auto-trigger count changed
+		uint16_t sel = lv_dropdown_get_selected(obj);
+		uint32_t val = 1000;
+		switch (sel) {
+		case 0:
+			// Set auto-trigger count to 1
+			val = 1;
+			break;
+		case 1:
+			// Set auto-trigger count to 10
+			val = 10;
+			break;
+		case 2:
+			// Set auto-trigger count to 100
+			val = 100;
+			break;
+		case 3:
+			// Set auto-trigger count to 500
+			val = 500;
+			break;
+		case 4:
+			// Set auto-trigger count to 1000
+			val = 1000;
+			break;
+		default:
+			break;
+		}
+		// Set auto-trigger count to "value"
+		xlat_set_auto_trigger_count(val);
+	}
         else {
             printf("Unknown event\n");
         }
@@ -217,6 +248,16 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_label_set_text(version_label, version_str);
     lv_obj_align(version_label, LV_ALIGN_TOP_RIGHT, -10, 10);
 
+    // Auto-trigger Count Label & Slider
+    lv_obj_t *count_label = lv_label_create(settings_screen);
+    lv_label_set_text(count_label, "Auto-trigger Count:");
+    lv_obj_align_to(count_label, version_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 20);
+
+    count_dropdown = (lv_slider_t *) lv_dropdown_create(settings_screen);
+    lv_dropdown_set_options((lv_obj_t *) count_dropdown, "1\n10\n100\n500\n1000");
+    lv_obj_add_event_cb((struct _lv_obj_t *) count_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_align_to((struct _lv_obj_t *) count_dropdown, count_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
+
 
     // Display current settings
     uint32_t debounce_time = xlat_get_gpio_irq_holdoff_us() / 1000;
@@ -258,6 +299,30 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
 
     // Display current auto-trigger level
     lv_dropdown_set_selected((lv_obj_t *) trigger_dropdown, xlat_auto_trigger_level_is_high());
+
+    uint16_t trigger_count = xlat_get_auto_trigger_count();
+    uint16_t count_index = 0;
+    switch (trigger_count) {
+    case 1:
+        count_index = 0;
+        break;
+    case 10:
+        count_index = 1;
+        break;
+    case 100:
+        count_index = 2;
+        break;
+    case 500:
+        count_index = 3;
+        break;
+    case 1000:
+        count_index = 4;
+        break;
+    default:
+        break;
+    }
+    // Display current auto-trigger count
+    lv_dropdown_set_selected((lv_obj_t *) count_dropdown, count_index);
 
 }
 
