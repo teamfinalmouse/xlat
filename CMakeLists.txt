@@ -141,6 +141,7 @@ set(USB_Sources
         src/usb/usbh_ioreq.c
         src/usb/usbh_pipes.c
         src/usb/usbh_hid.c
+        src/usb/usbh_hid_mouse.c
 )
 
 add_definitions(
