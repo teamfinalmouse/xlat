@@ -185,7 +185,8 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_align(btn_back, LV_ALIGN_BOTTOM_LEFT, 10, -10);
     lv_obj_add_event_cb(btn_back, back_btn_event_handler, LV_EVENT_CLICKED, NULL);
     lv_obj_t *back_label = lv_label_create(btn_back);
-    lv_label_set_text(back_label, "Back");
+    lv_label_set_text(back_label, "BACK");
+    lv_obj_center(back_label);
 
     // Version number label in the top right
     lv_obj_t *version_label = lv_label_create(settings_screen);
