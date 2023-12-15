@@ -29,7 +29,7 @@
 #define Y_CHART_SIZE_Y 130
 
 #define X_CHART_RANGE 1000
-#define Y_CHART_RANGE 5000
+#define Y_CHART_RANGE 2000
 
 lv_color_t lv_color_lightblue = LV_COLOR_MAKE(0xa6, 0xd1, 0xd1);
 
@@ -38,8 +38,6 @@ static lv_obj_t * latency_label;
 static lv_obj_t * productname_label;
 static lv_obj_t * manufacturer_label;
 static lv_obj_t * vidpid_label;
-static lv_chart_cursor_t * chart_cursor_usb;
-//static lv_chart_cursor_t * chart_cursor_avg;
 static lv_obj_t * hid_offsets_label;
 static lv_obj_t * trigger_label;
 static lv_obj_t * trigger_ready_cb;
@@ -67,13 +65,12 @@ static void latency_label_update(void)
 void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid)
 {
     lv_label_set_text(vidpid_label, vidpid);
-    lv_obj_align(vidpid_label, LV_ALIGN_TOP_RIGHT, 0, 0);
-
-    lv_label_set_text(productname_label, productname);
-    lv_obj_align_to(productname_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
-
     lv_label_set_text(manufacturer_label, manufacturer);
-    lv_obj_align_to(manufacturer_label, productname_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
+    lv_label_set_text(productname_label, productname);
+
+    lv_obj_align(manufacturer_label, LV_ALIGN_TOP_RIGHT, 0, 0);
+    lv_obj_align_to(vidpid_label, manufacturer_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
+    lv_obj_align_to(productname_label, manufacturer_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
 }
 
 static void btn_clear_event_cb(lv_event_t * e)
@@ -181,16 +178,6 @@ static void chart_update(uint32_t value)
 {
     lv_chart_set_next_value(chart, lv_chart_get_series_next(chart, NULL), (lv_coord_t)value);
 
-    // get the point id of the last point
-    // lv_chart_series_t * ser = lv_chart_get_series_next(chart, NULL);
-    // uint16_t point_count = lv_chart_get_point_count(chart); // always 10
-    // lv_point_t point;
-    // lv_chart_get_point_pos_by_id(chart, ser, chart_point_count > point_count ? point_count - 1 : chart_point_count, &point);
-    // point.x = 11 + 43*9;
-    // printf("chart_update: %lu, count: %u, point_count: %u, %d,%d\n", value, chart_point_count, point_count, point.x, point.y);
-    // lv_chart_set_cursor_pos(chart, chart_cursor_usb, &point);
-    //lv_chart_set_cursor_point(chart, chart_cursor_avg, NULL, xlat_get_average_latency(LATENCY_GPIO_TO_USB));
-
     chart_point_count++;
 
     value = value > INT16_MAX ? INT16_MAX : value; // clip to 16-bit signed (lv_coord_t)
@@ -217,7 +204,7 @@ void lv_chart_new(lv_coord_t xrange, lv_coord_t yrange)
     // Create a chart
     chart = lv_chart_create(lv_scr_act());
     lv_obj_set_size(chart, Y_CHART_SIZE_X, Y_CHART_SIZE_Y);
-    lv_obj_align(chart, LV_ALIGN_CENTER, 20, 0);
+    lv_obj_align(chart, LV_ALIGN_CENTER, 20, 10);
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, yrange);
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_X, 0, xrange);
 
@@ -292,7 +279,7 @@ static void new_theme_init_and_set(void)
     lv_disp_set_theme(NULL, &th_new);
 }
 
-void gfx_set_offsets_text(void)
+void gfx_set_byte_offsets_text(void)
 {
     char text[100];
     hid_data_location_t * button = xlat_get_button_location();
@@ -307,7 +294,7 @@ void gfx_set_offsets_text(void)
     }
 
     lv_checkbox_set_text(hid_offsets_label, text);
-    lv_obj_align_to(hid_offsets_label, vidpid_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
+    lv_obj_align_to(hid_offsets_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
 }
 
 static void gfx_xlat_gui(void)
@@ -327,31 +314,23 @@ static void gfx_xlat_gui(void)
     // DEVICE INFO TOP RIGHT //
     ///////////////////////////
 
-    // Vid/Pid label
+    // Vid/Pid label, device name label, manufacturer label
     vidpid_label = lv_label_create(lv_scr_act());
-    lv_label_set_text(vidpid_label, "0:0");
-    lv_obj_align(vidpid_label, LV_ALIGN_TOP_RIGHT, 0, 0);
-
-    // Device label
     productname_label = lv_label_create(lv_scr_act());
-    lv_label_set_text(productname_label, "No USB device connected");
-    lv_obj_align_to(productname_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -10, 0);
-
-    // Manufacturer label
     manufacturer_label = lv_label_create(lv_scr_act());
-    lv_label_set_text(manufacturer_label, "");
-    lv_obj_align_to(manufacturer_label, productname_label, LV_ALIGN_OUT_LEFT_BOTTOM, -10, 0);
+    gfx_set_device_label("", "No USB device connected", "");
 
-    // HID byte0/1 checkbox
-    hid_offsets_label = lv_label_create(lv_scr_act());
-    gfx_set_offsets_text();
 
     // Trigger ready label
     trigger_ready_cb = lv_checkbox_create(lv_scr_act());
     lv_checkbox_set_text(trigger_ready_cb, "READY");
     lv_obj_add_state(trigger_ready_cb, LV_STATE_CHECKED);
     lv_obj_set_style_bg_color(trigger_ready_cb, lv_palette_main(LV_PALETTE_RED), 0);
-    lv_obj_align_to(trigger_ready_cb, hid_offsets_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
+    lv_obj_align(trigger_ready_cb, LV_ALIGN_BOTTOM_RIGHT, -10, -7);
+
+    // HID byte offsets label
+    hid_offsets_label = lv_label_create(lv_scr_act());
+    gfx_set_byte_offsets_text();
 
     ///////////////////////////
     // BUTTONS AT THE BOTTOM //
@@ -359,8 +338,8 @@ static void gfx_xlat_gui(void)
 
     // Clear button
     lv_obj_t * clear_btn = lv_btn_create(lv_scr_act());
-    lv_obj_align(clear_btn, LV_ALIGN_BOTTOM_LEFT, 10, -10);
-    lv_obj_set_size(clear_btn, 80, 30);
+    lv_obj_align(clear_btn, LV_ALIGN_BOTTOM_LEFT, 10, -5);
+    lv_obj_set_size(clear_btn, GFX_BTN_WIDTH, GFX_BTN_HEIGHT);
     lv_obj_add_event_cb(clear_btn, btn_clear_event_cb, LV_EVENT_ALL, NULL);
 
     // Reset button label
@@ -371,7 +350,7 @@ static void gfx_xlat_gui(void)
     // Reboot button
     lv_obj_t * reboot_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(reboot_btn, clear_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-    lv_obj_set_size(reboot_btn, 80, 30);
+    lv_obj_set_size(reboot_btn, GFX_BTN_WIDTH, GFX_BTN_HEIGHT);
     lv_obj_add_event_cb(reboot_btn, btn_reboot_event_cb, LV_EVENT_ALL, NULL);
 
     // Reboot button label
@@ -382,7 +361,7 @@ static void gfx_xlat_gui(void)
     // Settings button
     lv_obj_t * settings_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(settings_btn, reboot_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-    lv_obj_set_size(settings_btn, 80, 30);
+    lv_obj_set_size(settings_btn, GFX_BTN_WIDTH, GFX_BTN_HEIGHT);
     lv_obj_add_event_cb(settings_btn, btn_settings_event_cb, LV_EVENT_ALL, NULL);
 
     // Settings button label
@@ -393,7 +372,7 @@ static void gfx_xlat_gui(void)
     // Trigger button
     lv_obj_t * trigger_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(trigger_btn, settings_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-    lv_obj_set_size(trigger_btn, 80, 30);
+    lv_obj_set_size(trigger_btn, GFX_BTN_WIDTH, GFX_BTN_HEIGHT);
     lv_obj_add_event_cb(trigger_btn, btn_trigger_event_cb, LV_EVENT_ALL, NULL);
 
     // Trigger button label
@@ -410,7 +389,7 @@ static void gfx_xlat_gui(void)
     // CHART //
     ///////////
     lv_chart_new(X_CHART_RANGE, Y_CHART_RANGE);
-    chart_cursor_usb = lv_chart_add_cursor(chart, lv_color_white(), LV_DIR_TOP);
+    lv_chart_add_cursor(chart, lv_color_white(), LV_DIR_TOP);
 }
 
 
@@ -463,12 +442,12 @@ void gfx_task(void)
                 gfx_set_device_label(usb_host_get_manuf_string(),
                                      usb_host_get_product_string(),
                                      usb_host_get_vidpid_string());
-                gfx_set_offsets_text();
+                gfx_set_byte_offsets_text();
                 break;
 
             case GFX_EVENT_HID_DEVICE_DISCONNECTED:
                 gfx_set_device_label("", "No USB device connected", "");
-                gfx_set_offsets_text();
+                gfx_set_byte_offsets_text();
                 break;
         }
 

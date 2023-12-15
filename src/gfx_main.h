@@ -21,6 +21,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define GFX_BTN_HEIGHT    (25)
+#define GFX_BTN_WIDTH     (80)
+
+
 typedef enum gfx_event_type {
     GFX_EVENT_MEASUREMENT,
     GFX_EVENT_HID_DEVICE_CONNECTED,
@@ -36,6 +40,6 @@ void gfx_init(void);
 void gfx_task(void);
 void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid);
 void gfx_set_trigger_ready(bool state);
-void gfx_set_offsets_text();
+void gfx_set_byte_offsets_text();
 
 #endif //XLAT_F7_FW_GFX_H
