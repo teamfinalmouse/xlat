@@ -27,6 +27,9 @@
 #define Y_CHART_SIZE_X 410
 #define Y_CHART_SIZE_Y 130
 
+#define X_CHART_RANGE 1000
+#define Y_CHART_RANGE 5000
+
 lv_color_t lv_color_lightblue = LV_COLOR_MAKE(0xa6, 0xd1, 0xd1);
 
 static lv_obj_t * chart;
@@ -40,6 +43,7 @@ static lv_obj_t * trigger_label;
 static lv_obj_t * trigger_ready_cb;
 
 static size_t chart_point_count = 0;
+static lv_coord_t chart_y_range = 0;
 
 static void chart_reset(void);
 
@@ -65,7 +69,7 @@ void gfx_set_device_label(const char * name, const char *vidpid)
     lv_obj_align_to(productname_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -10, 0);
 }
 
-static void btn_reset_event_cb(lv_event_t * e)
+static void btn_clear_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
 
@@ -139,6 +143,8 @@ static void chart_reset(void)
     lv_chart_set_x_start_point(chart, ser, 0);
 
     chart_point_count = 0;
+    chart_y_range = Y_CHART_RANGE;
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, chart_y_range);
 
     lv_chart_refresh(chart);
 }
@@ -158,6 +164,16 @@ static void chart_update(uint32_t value)
     //lv_chart_set_cursor_point(chart, chart_cursor_avg, NULL, xlat_get_average_latency(LATENCY_GPIO_TO_USB));
 
     chart_point_count++;
+
+    value = value > INT16_MAX ? INT16_MAX : value; // clip to 16-bit signed (lv_coord_t)
+    value = (value + 999) / 1000 * 1000; // round up to nearest 1000
+
+    // update y-axis range if needed
+    if (value > chart_y_range) {
+        chart_y_range = (lv_coord_t)value;
+    }
+
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, chart_y_range);
 
     // refresh the chart
     lv_chart_refresh(chart);
@@ -185,6 +201,8 @@ void lv_chart_new(lv_coord_t xrange, lv_coord_t yrange)
     lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 10, 5, 11, 2, true, 20);
     // Y-axis: major tick every 1ms
     lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 5 + 1, 2, true, 60);
+
+    chart_y_range = yrange;
 }
 
 #endif
@@ -321,7 +339,7 @@ static void gfx_xlat_gui(void)
     lv_obj_t * clear_btn = lv_btn_create(lv_scr_act());               /*Add a button the current screen*/
     lv_obj_align(clear_btn, LV_ALIGN_BOTTOM_LEFT, 10, -10);
     lv_obj_set_size(clear_btn, 80, 30);                              /*Set its size*/
-    lv_obj_add_event_cb(clear_btn, btn_reset_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+    lv_obj_add_event_cb(clear_btn, btn_clear_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
 
     // Reset button label
     lv_obj_t * reset_label = lv_label_create(clear_btn);            /*Add a label to the button*/
@@ -369,10 +387,8 @@ static void gfx_xlat_gui(void)
     ///////////
     // CHART //
     ///////////
-    lv_chart_new(1000, 5000); // 5 ms
+    lv_chart_new(X_CHART_RANGE, Y_CHART_RANGE);
     chart_cursor_usb = lv_chart_add_cursor(chart, lv_color_white(), LV_DIR_TOP);
-    //chart_cursor_avg = lv_chart_add_cursor(chart, lv_color_lightblue, LV_DIR_HOR);
-    //chart_cursor_gpio = lv_chart_add_cursor(chart, lv_color_lightblue, LV_DIR_BOTTOM);
 }
 
 
