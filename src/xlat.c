@@ -234,7 +234,13 @@ static int calculate_gpio_to_usb_time(void)
     // gpio -> usb stats
     int32_t us = last_usb_timestamp_us - last_btn_gpio_timestamp;
     printf("[gpio -> usb] diff: us: %5ld\n", us);
-    xlat_add_latency_measurement(us > 0 ? us : 0, LATENCY_GPIO_TO_USB);
+
+    // drop negative values
+    if (us < 0) {
+        return -1;
+    }
+
+    xlat_add_latency_measurement(us, LATENCY_GPIO_TO_USB);
 
     // send a message to the gfx thread, to refresh the plot
     struct gfx_event *evt;
