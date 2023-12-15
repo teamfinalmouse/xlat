@@ -21,8 +21,8 @@ set(CMAKE_ASM_SOURCE_FILE_EXTENSIONS s)
 
 # Define the application version
 set(APP_VERSION_MAJOR 1)
-set(APP_VERSION_MINOR 1)
-set(APP_VERSION_PATCH 99) # patch level 99 = work-in-progress for next release
+set(APP_VERSION_MINOR 2)
+set(APP_VERSION_PATCH 0) # patch level 99 = work-in-progress for next release
 set(APP_VERSION_STRING "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}")
 
 add_compile_options(
