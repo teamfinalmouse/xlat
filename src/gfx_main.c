@@ -47,6 +47,8 @@ static lv_obj_t * trigger_ready_cb;
 static size_t chart_point_count = 0;
 static lv_coord_t chart_y_range = 0;
 
+static lv_timer_t * trigger_timer = NULL;
+
 static void chart_reset(void);
 
 LV_IMG_DECLARE(xlat_logo);
@@ -104,22 +106,34 @@ static void btn_settings_event_cb(lv_event_t * e)
     }
 }
 
+static void auto_trigger_clear_timer(void)
+{
+    // Reset the trigger label
+    lv_label_set_text(trigger_label, "TRIGGER");
+    lv_obj_center(trigger_label);
+
+    // Stop the timer
+    lv_timer_del(trigger_timer);
+    trigger_timer = NULL;
+}
+
 void auto_trigger_callback(lv_timer_t * timer)
 {
-    /*Use the user_data*/
-    uint32_t * user_data = timer->user_data;
+    char label[20];
+    size_t * count = timer->user_data;
 
     xlat_auto_trigger_action();
 
-    *user_data = (*user_data) - 1;
-    char label[20];
-    if (*user_data) {
-        sprintf(label, "%lu", *user_data);
+    *count = (*count) - 1;
+    if (*count) {
+        sprintf(label, "%lu", (long)*count);
         lv_label_set_text(trigger_label, label);    /*Set the labels text*/
         lv_obj_center(trigger_label);
+
+        // Restart the timer with a random period added to the base period
+        lv_timer_set_period(timer, AUTO_TRIGGER_PERIOD_MS + (rand() % 10));
     } else {
-        lv_label_set_text(trigger_label, "TRIGGER"); /*Set the labels text*/
-        lv_obj_center(trigger_label);
+        auto_trigger_clear_timer();
     }
 }
 
@@ -130,11 +144,20 @@ static void btn_trigger_event_cb(lv_event_t * e)
     lv_event_code_t code = lv_event_get_code(e);
 
     if (code == LV_EVENT_CLICKED) {
-        // Trigger a measurement
-        printf("AutoTrigger activated\n");
-        count = 1000;
-        lv_timer_t * timer = lv_timer_create(auto_trigger_callback, 149,  &count);
-        lv_timer_set_repeat_count(timer, count);
+        if (count) {
+            // Already running
+            count = 0;
+            auto_trigger_clear_timer();
+        } else {
+            // Trigger a new series of measurements
+            printf("AutoTrigger activated\n");
+            count = 1000;
+            // seed the random number generator
+            srand(xlat_counter_1mhz_get());
+            // start the timer
+            trigger_timer = lv_timer_create(auto_trigger_callback, AUTO_TRIGGER_PERIOD_MS,  &count);
+            //lv_timer_set_repeat_count(timer, count);
+        }
     }
 }
 

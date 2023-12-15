@@ -54,34 +54,34 @@ static void event_handler(lv_event_t* e)
             uint16_t sel = lv_dropdown_get_selected(obj);
             hw_config_input_trigger(sel);
         } else if (obj == (lv_obj_t *)debounce_dropdown) {
-            // Debounce time changed
+            // Hold-off time changed
             uint16_t sel = lv_dropdown_get_selected(obj);
             uint32_t val = 20;
             switch (sel) {
                 case 0:
-                    // Set debounce time to 20ms
+                    // Set hold-off time to 20ms
                     val = 20;
                     break;
                 case 1:
-                    // Set debounce time to 100ms
+                    // Set hold-off time to 100ms
                     val = 100;
                     break;
                 case 2:
-                    // Set debounce time to 200ms
+                    // Set hold-off time to 200ms
                     val = 200;
                     break;
                 case 3:
-                    // Set debounce time to 500ms
+                    // Set hold-off time to 500ms
                     val = 500;
                     break;
                 case 4:
-                    // Set debounce time to 1000ms
+                    // Set hold-off time to 1000ms
                     val = 1000;
                     break;
                 default:
                     break;
             }
-            // Set debounce time to "value"
+            // Set hold-off time to "value"
             xlat_set_gpio_irq_holdoff_us(val * 1000);
         }
         else if (obj == (lv_obj_t *)trigger_dropdown) {
