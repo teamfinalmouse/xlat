@@ -22,10 +22,17 @@
 #include <stdint.h>
 #include "src/usb/usbh_def.h"
 
-struct hid_event {
+typedef struct hid_event {
     USBH_HandleTypeDef *phost;
     uint32_t timestamp;
-};
+} hid_event_t;
+
+typedef struct hid_data_location {
+    bool found;
+    size_t bit_index;
+    size_t bit_size;
+    size_t byte_offset;
+} hid_data_location_t;
 
 typedef enum latency_type {
     LATENCY_GPIO_TO_USB = 0,
@@ -66,8 +73,15 @@ uint32_t xlat_get_last_button_timestamp_us(void);
 void xlat_set_using_reportid(bool use_reportid);
 bool xlat_get_using_reportid(void);
 
+void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size);
+
 void xlat_set_mode(enum xlat_mode mode);
 enum xlat_mode xlat_get_mode(void);
+
+hid_data_location_t * xlat_get_button_location(void);
+hid_data_location_t * xlat_get_x_location(void);
+hid_data_location_t * xlat_get_y_location(void);
+void xlat_clear_locations(void);
 
 void xlat_auto_trigger_action(void);
 void xlat_auto_trigger_level_set(bool high);

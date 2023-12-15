@@ -22,6 +22,7 @@
 #include "src/usb/usbh_core.h"
 #include "usbh_hid.h"
 #include "gfx_main.h"
+#include "xlat.h"
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -29,8 +30,9 @@
 
 /* USB Host core handle declaration */
 USBH_HandleTypeDef hUsbHostHS;
-static char label[128];
+static char vidpid_string[128];
 static char product_string[110] = {0};
+static char manuf_string[110] = {0};
 
 /*
  * user callback declaration
@@ -68,30 +70,37 @@ static void USBH_UserProcess  (USBH_HandleTypeDef *phost, uint8_t id)
         case HOST_USER_SELECT_CONFIGURATION:
             break;
 
-        case HOST_USER_DISCONNECTION:
-            gfx_set_device_label("No USB device connected", "");
+        case HOST_USER_DISCONNECTION: {
+            // Clear offsets
+            xlat_clear_locations();
+            // Send a message to the gfx thread, to refresh the device info
+            struct gfx_event *evt;
+            evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message
+            evt->type = GFX_EVENT_HID_DEVICE_DISCONNECTED;
+            evt->value = 0;
+            osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
             break;
+        }
 
         case HOST_USER_CLASS_ACTIVE: {
+            // Compose vidpid string
             uint16_t vid = phost->device.DevDesc.idVendor;
             uint16_t pid = phost->device.DevDesc.idProduct;
             printf("USB HID device connected: 0x%04X:%04X\n", vid, pid);
-            if (vid == 0x361d && pid == 0x0100) {
-                printf("Finalmouse UltralightX detected\n");
-                gfx_set_hid_byte(true);
-            } else {
-                gfx_set_hid_byte(false);
-            }
-            memset(label, 0, sizeof(label));
-            snprintf(label, sizeof(label), "0x%04X:%04X", vid, pid);
-            label[sizeof(label) - 1] = '\0';
-            gfx_set_device_label(product_string, label);
-        }
+            memset(vidpid_string, 0, sizeof(vidpid_string));
+            snprintf(vidpid_string, sizeof(vidpid_string), "0x%04X:%04X", vid, pid);
+            vidpid_string[sizeof(vidpid_string) - 1] = '\0';
+
+            // Send a message to the gfx thread, to refresh the device info
+            struct gfx_event *evt;
+            evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message
+            evt->type = GFX_EVENT_HID_DEVICE_CONNECTED;
+            evt->value = 0;
+            osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
             break;
+        }
 
         case HOST_USER_CONNECTION:
-            break;
-
         default:
             break;
     }
@@ -101,4 +110,29 @@ void usb_host_set_product_string(const char * product)
 {
     snprintf(product_string, sizeof(product_string), "%s", product);
     product_string[sizeof(product_string) - 1] = '\0';
+}
+
+
+char * usb_host_get_product_string(void)
+{
+    return product_string;
+}
+
+
+void usb_host_set_manuf_string(const char * manuf)
+{
+    snprintf(manuf_string, sizeof(manuf_string), "%s", manuf);
+    manuf_string[sizeof(manuf_string) - 1] = '\0';
+}
+
+
+char * usb_host_get_manuf_string(void)
+{
+    return manuf_string;
+}
+
+
+char * usb_host_get_vidpid_string(void)
+{
+    return vidpid_string;
 }

@@ -23,6 +23,7 @@
 #include "xlat.h"
 #include "gfx_settings.h"
 #include "stdio_glue.h"
+#include "usb_host.h"
 
 #define Y_CHART_SIZE_X 410
 #define Y_CHART_SIZE_Y 130
@@ -35,10 +36,11 @@ lv_color_t lv_color_lightblue = LV_COLOR_MAKE(0xa6, 0xd1, 0xd1);
 static lv_obj_t * chart;
 static lv_obj_t * latency_label;
 static lv_obj_t * productname_label;
+static lv_obj_t * manufacturer_label;
 static lv_obj_t * vidpid_label;
 static lv_chart_cursor_t * chart_cursor_usb;
 //static lv_chart_cursor_t * chart_cursor_avg;
-static lv_obj_t * hid_byte_cb;
+static lv_obj_t * hid_offsets_label;
 static lv_obj_t * trigger_label;
 static lv_obj_t * trigger_ready_cb;
 
@@ -60,13 +62,16 @@ static void latency_label_update(void)
     lv_obj_align_to(latency_label, chart, LV_ALIGN_OUT_TOP_MID, 0, 0);
 }
 
-void gfx_set_device_label(const char * name, const char *vidpid)
+void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid)
 {
     lv_label_set_text(vidpid_label, vidpid);
     lv_obj_align(vidpid_label, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-    lv_label_set_text(productname_label, name);
-    lv_obj_align_to(productname_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -10, 0);
+    lv_label_set_text(productname_label, productname);
+    lv_obj_align_to(productname_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
+
+    lv_label_set_text(manufacturer_label, manufacturer);
+    lv_obj_align_to(manufacturer_label, productname_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
 }
 
 static void btn_clear_event_cb(lv_event_t * e)
@@ -207,33 +212,6 @@ void lv_chart_new(lv_coord_t xrange, lv_coord_t yrange)
 
 #endif
 
-static void cb_evt_handler(lv_event_t * e)
-{
-    lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t * obj = lv_event_get_target(e);
-    if (code == LV_EVENT_VALUE_CHANGED) {
-        xlat_set_using_reportid(lv_obj_get_state(obj) & LV_STATE_CHECKED);
-        if (lv_obj_get_state(obj) & LV_STATE_CHECKED) {
-            lv_checkbox_set_text(obj, "HID[1]");
-        } else {
-            lv_checkbox_set_text(obj, "HID[0]");
-        }
-    }
-}
-
-void gfx_set_hid_byte(bool state)
-{
-    if (state) {
-        lv_obj_add_state(hid_byte_cb, LV_STATE_CHECKED);
-    } else {
-        lv_obj_clear_state(hid_byte_cb, LV_STATE_CHECKED);
-    }
-    lv_event_t e;
-    e.code = LV_EVENT_VALUE_CHANGED;
-    e.target = hid_byte_cb;
-    cb_evt_handler(&e);
-}
-
 static lv_style_t style_btn;
 static lv_style_t style_chart;
 
@@ -291,6 +269,24 @@ static void new_theme_init_and_set(void)
     lv_disp_set_theme(NULL, &th_new);
 }
 
+void gfx_set_offsets_text(void)
+{
+    char text[100];
+    hid_data_location_t * button = xlat_get_button_location();
+    hid_data_location_t * x = xlat_get_x_location();
+    hid_data_location_t * y = xlat_get_y_location();
+
+    if (button->found && x->found && y->found) {
+        sprintf(text, "Data: click@%d motion@%d,%d", button->byte_offset, x->byte_offset, y->byte_offset);
+    } else {
+        // offsets not found
+        sprintf(text, "Data: offsets not found");
+    }
+
+    lv_checkbox_set_text(hid_offsets_label, text);
+    lv_obj_align_to(hid_offsets_label, vidpid_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
+}
+
 static void gfx_xlat_gui(void)
 {
     // Rotate display
@@ -318,65 +314,68 @@ static void gfx_xlat_gui(void)
     lv_label_set_text(productname_label, "No USB device connected");
     lv_obj_align_to(productname_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -10, 0);
 
+    // Manufacturer label
+    manufacturer_label = lv_label_create(lv_scr_act());
+    lv_label_set_text(manufacturer_label, "");
+    lv_obj_align_to(manufacturer_label, productname_label, LV_ALIGN_OUT_LEFT_BOTTOM, -10, 0);
+
     // HID byte0/1 checkbox
-    hid_byte_cb = lv_checkbox_create(lv_scr_act());
-    lv_checkbox_set_text(hid_byte_cb, "HID[0]");
-    lv_obj_align_to(hid_byte_cb, vidpid_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
-    lv_obj_add_event_cb(hid_byte_cb, cb_evt_handler, LV_EVENT_VALUE_CHANGED, NULL);
+    hid_offsets_label = lv_label_create(lv_scr_act());
+    gfx_set_offsets_text();
 
     // Trigger ready label
     trigger_ready_cb = lv_checkbox_create(lv_scr_act());
     lv_checkbox_set_text(trigger_ready_cb, "READY");
     lv_obj_add_state(trigger_ready_cb, LV_STATE_CHECKED);
     lv_obj_set_style_bg_color(trigger_ready_cb, lv_palette_main(LV_PALETTE_RED), 0);
-    lv_obj_align_to(trigger_ready_cb, hid_byte_cb, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
+    lv_obj_align_to(trigger_ready_cb, hid_offsets_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
 
     ///////////////////////////
     // BUTTONS AT THE BOTTOM //
     ///////////////////////////
 
     // Clear button
-    lv_obj_t * clear_btn = lv_btn_create(lv_scr_act());               /*Add a button the current screen*/
+    lv_obj_t * clear_btn = lv_btn_create(lv_scr_act());
     lv_obj_align(clear_btn, LV_ALIGN_BOTTOM_LEFT, 10, -10);
-    lv_obj_set_size(clear_btn, 80, 30);                              /*Set its size*/
-    lv_obj_add_event_cb(clear_btn, btn_clear_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+    lv_obj_set_size(clear_btn, 80, 30);
+    lv_obj_add_event_cb(clear_btn, btn_clear_event_cb, LV_EVENT_ALL, NULL);
 
     // Reset button label
-    lv_obj_t * reset_label = lv_label_create(clear_btn);            /*Add a label to the button*/
-    lv_label_set_text(reset_label, "CLEAR");                        /*Set the labels text*/
+    lv_obj_t * reset_label = lv_label_create(clear_btn);
+    lv_label_set_text(reset_label, "CLEAR");
     lv_obj_center(reset_label);
 
     // Reboot button
-    lv_obj_t * reboot_btn = lv_btn_create(lv_scr_act());               /*Add a button the current screen*/
+    lv_obj_t * reboot_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(reboot_btn, clear_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-    lv_obj_set_size(reboot_btn, 80, 30);                              /*Set its size*/
-    lv_obj_add_event_cb(reboot_btn, btn_reboot_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+    lv_obj_set_size(reboot_btn, 80, 30);
+    lv_obj_add_event_cb(reboot_btn, btn_reboot_event_cb, LV_EVENT_ALL, NULL);
 
     // Reboot button label
-    lv_obj_t * reboot_label = lv_label_create(reboot_btn);            /*Add a label to the button*/
-    lv_label_set_text(reboot_label, "REBOOT");                        /*Set the labels text*/
+    lv_obj_t * reboot_label = lv_label_create(reboot_btn);
+    lv_label_set_text(reboot_label, "REBOOT");
     lv_obj_center(reboot_label);
 
     // Settings button
-    lv_obj_t * settings_btn = lv_btn_create(lv_scr_act());               /*Add a button the current screen*/
+    lv_obj_t * settings_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(settings_btn, reboot_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-    lv_obj_set_size(settings_btn, 80, 30);                              /*Set its size*/
-    lv_obj_add_event_cb(settings_btn, btn_settings_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+    lv_obj_set_size(settings_btn, 80, 30);
+    lv_obj_add_event_cb(settings_btn, btn_settings_event_cb, LV_EVENT_ALL, NULL);
 
     // Settings button label
-    lv_obj_t * settings_label = lv_label_create(settings_btn);            /*Add a label to the button*/
-    lv_label_set_text(settings_label, "SETTINGS");                        /*Set the labels text*/
+    lv_obj_t * settings_label = lv_label_create(settings_btn);
+    lv_label_set_text(settings_label, "SETTINGS");
     lv_obj_center(settings_label);
 
     // Trigger button
-    lv_obj_t * trigger_btn = lv_btn_create(lv_scr_act());               /*Add a button the current screen*/
+    lv_obj_t * trigger_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(trigger_btn, settings_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-    lv_obj_set_size(trigger_btn, 80, 30);                              /*Set its size*/
-    lv_obj_add_event_cb(trigger_btn, btn_trigger_event_cb, LV_EVENT_ALL, NULL); /*Assign a callback to the button*/
+    lv_obj_set_size(trigger_btn, 80, 30);
+    lv_obj_add_event_cb(trigger_btn, btn_trigger_event_cb, LV_EVENT_ALL, NULL);
 
     // Trigger button label
-    trigger_label = lv_label_create(trigger_btn);            /*Add a label to the button*/
-    lv_label_set_text(trigger_label, "TRIGGER");                        /*Set the labels text*/
+    trigger_label = lv_label_create(trigger_btn);
+    lv_label_set_text(trigger_label, "TRIGGER");
     lv_obj_center(trigger_label);
 
     // Latency label
@@ -411,23 +410,47 @@ void gfx_task(void)
     lv_task_handler();
     xSemaphoreGive(lvgl_mutex);
 
-    if (osMessageWaiting(msgQNewData)) {
+    if (osMessageWaiting(msgQGfxTask)) {
         // pop the message
-        osEvent evt = osMessageGet(msgQNewData, 0);
+        osEvent evt = osMessageGet(msgQGfxTask, 0);
+        if (evt.status != osEventMessage) {
+            return;
+        }
 
-        // take LVGL mutex
-        xSemaphoreTake(lvgl_mutex, portMAX_DELAY);
+        struct gfx_event *g_evt = evt.value.p;
+        switch (g_evt->type) {
+            case GFX_EVENT_MEASUREMENT:
+                // New measurement received
 
-        // update chart data
-        chart_update(evt.value.v);
+                // guard with LVGL mutex
+                xSemaphoreTake(lvgl_mutex, portMAX_DELAY);
+                {
+                    // update chart data
+                    chart_update(g_evt->value);
 
-        // update to latest xlat measurements
-        latency_label_update();
+                    // update to latest xlat measurements
+                    latency_label_update();
+                }
+                xSemaphoreGive(lvgl_mutex);
 
-        // give LVGL mutex
-        xSemaphoreGive(lvgl_mutex);
+                xlat_print_measurement();
+                break;
 
-        xlat_print_measurement();
+            case GFX_EVENT_HID_DEVICE_CONNECTED:
+                gfx_set_device_label(usb_host_get_manuf_string(),
+                                     usb_host_get_product_string(),
+                                     usb_host_get_vidpid_string());
+                gfx_set_offsets_text();
+                break;
+
+            case GFX_EVENT_HID_DEVICE_DISCONNECTED:
+                gfx_set_device_label("", "No USB device connected", "");
+                gfx_set_offsets_text();
+                break;
+        }
+
+        // free event memory
+        osPoolFree(gfxevt_pool, g_evt);
     }
 }
 

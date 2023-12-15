@@ -7,6 +7,13 @@
   * @attention
   *
   * Copyright (c) 2015 STMicroelectronics.
+  *
+  * Copyright (c) 2023 Finalmouse, LLC:
+  * - USB-HS support for poll interval = 1 (8 kHz)
+  * - Proper interface selection to fetch HID descriptors
+  * - USBH_GetDescriptor fix
+  * - Other small tweaks
+  *
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -105,7 +112,7 @@ USBH_StatusTypeDef USBH_Get_DevDesc(USBH_HandleTypeDef *phost, uint16_t length)
 
   status = USBH_GetDescriptor(phost,
                               USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD,
-                              USB_DESC_DEVICE, phost->device.Data, length);
+                              USB_DESC_DEVICE, phost->device.Data, 0x0, length);
 
   if (status == USBH_OK)
   {
@@ -138,7 +145,7 @@ USBH_StatusTypeDef USBH_Get_CfgDesc(USBH_HandleTypeDef *phost, uint16_t length)
   }
 
   status = USBH_GetDescriptor(phost, (USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD),
-                              USB_DESC_CONFIGURATION, pData, length);
+                              USB_DESC_CONFIGURATION, pData, 0x0, length);
 
   if (status == USBH_OK)
   {
@@ -173,7 +180,7 @@ USBH_StatusTypeDef USBH_Get_StringDesc(USBH_HandleTypeDef *phost, uint8_t string
   status = USBH_GetDescriptor(phost,
                               USB_REQ_RECIPIENT_DEVICE | USB_REQ_TYPE_STANDARD,
                               USB_DESC_STRING | string_index,
-                              phost->device.Data, length);
+                              phost->device.Data, 0x0409U, length);
 
   if (status == USBH_OK)
   {
@@ -197,22 +204,14 @@ USBH_StatusTypeDef USBH_Get_StringDesc(USBH_HandleTypeDef *phost, uint8_t string
   * @retval USBH Status
   */
 USBH_StatusTypeDef USBH_GetDescriptor(USBH_HandleTypeDef *phost, uint8_t req_type, uint16_t value_idx,
-                                      uint8_t *buff, uint16_t length)
+                                      uint8_t *buff, uint16_t wIndex, uint16_t length)
 {
   if (phost->RequestState == CMD_SEND)
   {
     phost->Control.setup.b.bmRequestType = USB_D2H | req_type;
     phost->Control.setup.b.bRequest = USB_REQ_GET_DESCRIPTOR;
     phost->Control.setup.b.wValue.w = value_idx;
-
-    if ((value_idx & 0xff00U) == USB_DESC_STRING)
-    {
-      phost->Control.setup.b.wIndex.w = 0x0409U;
-    }
-    else
-    {
-      phost->Control.setup.b.wIndex.w = 0U;
-    }
+    phost->Control.setup.b.wIndex.w = wIndex;
     phost->Control.setup.b.wLength.w = length;
   }
 

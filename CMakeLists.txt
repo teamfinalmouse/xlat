@@ -53,6 +53,7 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/libs/FreeRTOS/Source/include
         ${CMAKE_SOURCE_DIR}/libs/FreeRTOS/Source/CMSIS_RTOS
         ${CMAKE_SOURCE_DIR}/libs/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1
+        ${CMAKE_SOURCE_DIR}/libs/lufa
         ${CMAKE_SOURCE_DIR}/libs/lvgl
         ${CMAKE_SOURCE_DIR}/libs/RTT/RTT
         ${CMAKE_SOURCE_DIR}/src
@@ -109,7 +110,7 @@ set(HAL_Sources
         drivers/BSP/STM32746G-Discovery/stm32746g_discovery_ts.c
         )
 
-set(FREERTOS_SOURCES
+set(FREERTOS_Sources
         libs/FreeRTOS/Source/croutine.c
         libs/FreeRTOS/Source/event_groups.c
         libs/FreeRTOS/Source/list.c
@@ -122,13 +123,17 @@ set(FREERTOS_SOURCES
         libs/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1/port.c
         )
 
-set(RTT_SOURCES
+set(RTT_Sources
         libs/RTT/RTT/SEGGER_RTT.c
         libs/RTT/RTT/SEGGER_RTT_printf.c
         libs/RTT/Syscalls/SEGGER_RTT_Syscalls_GCC.c
         )
 
-set(USB_SOURCES
+set(LUFA_Sources
+        libs/lufa/Drivers/USB/Class/Common/HIDParser.c
+)
+
+set(USB_Sources
         src/usb/usbh_conf.c
         src/usb/usb_host.c
         src/usb/usbh_core.c
@@ -136,9 +141,8 @@ set(USB_SOURCES
         src/usb/usbh_ioreq.c
         src/usb/usbh_pipes.c
         src/usb/usbh_hid.c
-        src/usb/usbh_hid_keybd.c
         src/usb/usbh_hid_mouse.c
-        )
+)
 
 add_definitions(
         -DSTM32
@@ -147,6 +151,9 @@ add_definitions(
         -DSTM32F746G_DISCO
         -DDEBUG
         -DUSE_HAL_DRIVER
+        -DUSB_CAN_BE_HOST
+        -DARCH=ARCH_CUSTOM
+        -DUSE_LUFA_CONFIG_HEADER
 )
 
 add_subdirectory(libs/lvgl)
@@ -173,9 +180,10 @@ add_executable(${PROJECT_NAME}
         drivers/touchpad/touchpad.c
         ${HAL_Sources}
         ${LVGL_Sources}
-        ${FREERTOS_SOURCES}
-        ${RTT_SOURCES}
-        ${USB_SOURCES}
+        ${LUFA_Sources}
+        ${FREERTOS_Sources}
+        ${RTT_Sources}
+        ${USB_Sources}
         )
 
 # Get the GIT SHA

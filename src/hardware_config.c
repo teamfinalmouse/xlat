@@ -88,8 +88,10 @@ void hw_debug_init(void)
     /* For better debugging experience */
     HAL_DBGMCU_EnableDBGStandbyMode();
     HAL_DBGMCU_EnableDBGStopMode();
-    DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM6_STOP; //enable timer 6
-    DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM7_STOP; //enable timer 7
+    DBGMCU->APB2FZ |= DBGMCU_APB2_FZ_DBG_TIM1_STOP; //enable timer 1 stop during debug
+    DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM2_STOP; //enable timer 2 stop during debug
+    DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM6_STOP; //enable timer 6 stop during debug
+    DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM7_STOP; //enable timer 7 stop during debug
 }
 
 void hw_exti_interrupts_enable(void)

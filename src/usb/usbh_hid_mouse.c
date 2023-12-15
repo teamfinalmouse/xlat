@@ -201,13 +201,10 @@ USBH_StatusTypeDef USBH_HID_MouseInit(USBH_HandleTypeDef *phost)
   }
   HID_Handle->pData = mouse_rx_report_buf;
 
-  if ((HID_QUEUE_SIZE * sizeof(mouse_report_data)) > sizeof(phost->device.Data))
-  {
+  if ((HID_QUEUE_SIZE * sizeof(mouse_report_data)) > sizeof(phost->device.Data)) {
     return USBH_FAIL;
-  }
-  else
-  {
-  USBH_HID_FifoInit(&HID_Handle->fifo, phost->device.Data, (uint16_t)(HID_QUEUE_SIZE * sizeof(mouse_report_data)));
+  } else {
+      USBH_HID_FifoInit(&HID_Handle->fifo, phost->device.Data, (uint16_t)(HID_QUEUE_SIZE * sizeof(mouse_report_data)));
   }
 
   return USBH_OK;

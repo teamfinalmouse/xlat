@@ -15,27 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef XLAT_F7_FW_GFX_H
-#define XLAT_F7_FW_GFX_H
+#ifndef _LUFA_CONFIG_H_
+#define _LUFA_CONFIG_H_
 
-#include <stdbool.h>
-#include <stdint.h>
+    #if (ARCH == ARCH_CUSTOM)
+        #define HID_PARSER_STREAM_ONLY  // Do not keep all reports in memory, stream them through CALLBACK_HIDParser_FilterHIDReportItem
+        #define HID_MAX_COLLECTIONS     20
+    #else
+		#error Unsupported architecture for this LUFA configuration file.
+    #endif
 
-typedef enum gfx_event_type {
-    GFX_EVENT_MEASUREMENT,
-    GFX_EVENT_HID_DEVICE_CONNECTED,
-    GFX_EVENT_HID_DEVICE_DISCONNECTED,
-} gfx_event_t;
-
-struct gfx_event {
-    gfx_event_t type;
-    int32_t value;
-};
-
-void gfx_init(void);
-void gfx_task(void);
-void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid);
-void gfx_set_trigger_ready(bool state);
-void gfx_set_offsets_text();
-
-#endif //XLAT_F7_FW_GFX_H
+#endif

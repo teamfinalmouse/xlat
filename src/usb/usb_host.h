@@ -65,6 +65,12 @@ typedef enum {
 void MX_USB_HOST_Init(void);
 
 void usb_host_set_product_string(const char * product);
+char * usb_host_get_product_string(void);
+
+void usb_host_set_manuf_string(const char * manuf);
+char * usb_host_get_manuf_string(void);
+
+char * usb_host_get_vidpid_string(void);
 
 /**
   * @}
