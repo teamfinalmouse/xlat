@@ -9,7 +9,6 @@
 ![Build Status](https://github.com/teamfinalmouse/xlat/actions/workflows/build.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 
-<br>
 
 # Table of Contents
 
@@ -36,7 +35,9 @@
 ## 🙋‍♂️ Introduction
 The XLAT Mouse Latency Measurement Tool by Finalmouse is engineered to accurately measure the latency of wired and wireless mice. This manual provides a step-by-step guide on how to set up and use this tool.
 
-![XLAT tool](img/xlat_picture.png)
+XLAT overview video:<br/>
+[![XLAT overview video](http://img.youtube.com/vi/RyWXZj3j_xU/0.jpg)](http://www.youtube.com/watch?v=RyWXZj3j_xU "XLAT overview")
+
 
 ## 🤔 Reason for creating XLAT
 The inception of the XLAT Mouse Latency Measurement Tool stemmed from a need to address the shortcomings of existing latency measurement methodologies, particularly concerning mouse latency. Here are the key motivators behind the creation of XLAT:
