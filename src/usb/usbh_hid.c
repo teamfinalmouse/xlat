@@ -20,6 +20,7 @@
 #include "usbh_hid_parser.h"
 #include "xlat.h"
 #include "usbh_hid_mouse.h"
+#include "usbh_hid_keyboard.h"
 
 
 static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost);
@@ -65,8 +66,8 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
     uint8_t num = 0U;
     uint8_t interface;
 
-    // First try to find a Mouse interface, specifically:
-    interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, HID_MOUSE_BOOT_CODE);
+    // First try to find a Mouse or Keyboard interface depending on the detection mode, specifically:
+    interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, (XLAT_MODE_KEY == xlat_get_mode()) ? HID_KEYBRD_BOOT_CODE : HID_MOUSE_BOOT_CODE);
 
     // Broaden the search criteria to no specific protocol
     if (interface == 0xFFU) {
@@ -113,6 +114,7 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
     /*Decode Bootclass Protocol: Mouse or Keyboard, see HID_KEYBRD_BOOT_CODE, HID_MOUSE_BOOT_CODE */
     if (phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol == HID_KEYBRD_BOOT_CODE) {
         USBH_UsrLog("KeyBoard device found! (iface: %d)", interface);
+        HID_Handle->Init = USBH_HID_KeyboardInit;
     } else if (phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol  == HID_MOUSE_BOOT_CODE) {
         USBH_UsrLog("Mouse device found! (iface: %d)", interface);
         HID_Handle->Init = USBH_HID_MouseInit;

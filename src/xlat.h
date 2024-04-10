@@ -46,6 +46,7 @@ typedef enum latency_type {
 typedef enum xlat_mode {
     XLAT_MODE_CLICK,
     XLAT_MODE_MOTION,
+    XLAT_MODE_KEY,
 } xlat_mode_t;
 
 extern volatile bool xlat_initialized;
@@ -83,6 +84,7 @@ enum xlat_mode xlat_get_mode(void);
 hid_data_location_t * xlat_get_button_location(void);
 hid_data_location_t * xlat_get_x_location(void);
 hid_data_location_t * xlat_get_y_location(void);
+hid_data_location_t * xlat_get_key_location(void);
 void xlat_clear_locations(void);
 
 void xlat_auto_trigger_action(void);

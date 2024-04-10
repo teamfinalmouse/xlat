@@ -92,12 +92,21 @@ static void event_handler(lv_event_t* e)
         else if (obj == (lv_obj_t *)detection_dropdown) {
             // Detection mode changed
             uint16_t sel = lv_dropdown_get_selected(obj);
-            if (sel == 0) {
-                // Click
-                xlat_set_mode(XLAT_MODE_CLICK);
-            } else {
-                // Motion
-                xlat_set_mode(XLAT_MODE_MOTION);
+
+            switch (sel) {
+                // Motion [M]
+                case 1:
+                    xlat_set_mode(XLAT_MODE_MOTION);
+                break;
+
+                // Key [K]
+                case 2:
+                    xlat_set_mode(XLAT_MODE_KEY);
+                break;
+
+                // Click [M]
+                default:
+                    xlat_set_mode(XLAT_MODE_CLICK);
             }
         }
         else {
@@ -146,14 +155,14 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_add_event_cb((struct _lv_obj_t *) trigger_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
 
 
-    // Click vs. motion detection label
+    // Click, motion & key detection label
     lv_obj_t *detection_mode = lv_label_create(settings_screen);
     lv_label_set_text(detection_mode, "Detection Mode:");
     lv_obj_align_to(detection_mode, trigger_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
-    // Click vs. motion detection dropdown
+    // Click, motion & key detection dropdown
     detection_dropdown = (lv_dropdown_t *) lv_dropdown_create(settings_screen);
-    lv_dropdown_set_options((lv_obj_t *) detection_dropdown, "Click\nMotion");
+    lv_dropdown_set_options((lv_obj_t *) detection_dropdown, "Click [M]\nMotion [M]\nKey [K]");
     lv_obj_add_event_cb((struct _lv_obj_t *) detection_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
 
     // If we don't add this label, the y-value of the last item will be 0
@@ -222,7 +231,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_dropdown_set_selected((lv_obj_t *) debounce_dropdown, debounce_index);
 
     // Display current detection mode
-    lv_dropdown_set_selected((lv_obj_t *) detection_dropdown, xlat_get_mode() == XLAT_MODE_MOTION);
+    lv_dropdown_set_selected((lv_obj_t *) detection_dropdown, xlat_get_mode());
 
 
     // Display current detection edge

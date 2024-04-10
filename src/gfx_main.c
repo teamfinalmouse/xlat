@@ -285,9 +285,12 @@ void gfx_set_byte_offsets_text(void)
     hid_data_location_t * button = xlat_get_button_location();
     hid_data_location_t * x = xlat_get_x_location();
     hid_data_location_t * y = xlat_get_y_location();
+    hid_data_location_t * key = xlat_get_key_location();
 
-    if (button->found && x->found && y->found) {
-        sprintf(text, "Data: click@%d motion@%d,%d", button->byte_offset, x->byte_offset, y->byte_offset);
+    if (button->found && x->found && y->found && XLAT_MODE_KEY != xlat_get_mode()) {
+        sprintf(text, "Mouse Data: click@%d motion@%d,%d", button->byte_offset, x->byte_offset, y->byte_offset);
+    } else if (key->found && XLAT_MODE_KEY == xlat_get_mode()) {
+        sprintf(text, "Keyboard Data: pressed@%d", key->byte_offset);
     } else {
         // offsets not found
         sprintf(text, "Data: offsets not found");
