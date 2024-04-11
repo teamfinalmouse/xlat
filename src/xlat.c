@@ -45,7 +45,7 @@ static volatile uint_fast8_t gpio_irq_consumer = 0;
 // SETTINGS
 volatile bool           xlat_initialized = false;
 static xlat_mode_t      xlat_mode = XLAT_MODE_CLICK;
-static bool             hid_using_reportid = false;
+static uint8_t          hid_reportid = 0;
 static bool             auto_trigger_level_high = false;
 static xlat_interface_t xlat_interface = XLAT_INTERFACE_AUTO;
 static uint8_t          found_interface = 0xFF;
@@ -169,6 +169,8 @@ static void hidreport_check_item(HID_ReportItem_t *item)
                         x_location.found = true;
                         x_location.bit_index = item->BitOffset;
                         x_location.bit_size = item->Attributes.BitSize;
+
+                        hid_reportid = item->ReportID;
                     }
                     break;
 
@@ -178,6 +180,8 @@ static void hidreport_check_item(HID_ReportItem_t *item)
                         y_location.found = true;
                         y_location.bit_index = item->BitOffset;
                         y_location.bit_size = item->Attributes.BitSize;
+
+                        hid_reportid = item->ReportID;
                     }
                     break;
             }
@@ -188,6 +192,8 @@ static void hidreport_check_item(HID_ReportItem_t *item)
             if (!key_location.found) {
                 key_location.found = true;
                 key_location.bit_index = item->BitOffset;
+
+                hid_reportid = item->ReportID;
             }
             break;
 
@@ -196,6 +202,8 @@ static void hidreport_check_item(HID_ReportItem_t *item)
             if (!button_location.found) {
                 button_location.found = true;
                 button_location.bit_index = item->BitOffset;
+
+                hid_reportid = item->ReportID;
             }
             break;
 
@@ -268,8 +276,8 @@ static void check_offsets(void)
 {
     printf("\n");
 
-    if (hid_using_reportid) {
-        printf("[*] Using reportId, so actual report data is starting at index [1]\n");
+    if (hid_reportid) {
+        printf("[*] Using reportId '%d', so actual report data is starting at index [1]\n", hid_reportid);
     }
 
     // Only print offsets relevant for a mouse
@@ -280,7 +288,7 @@ static void check_offsets(void)
                 printf("[!] Button found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", button_location.bit_index);
                 button_location.found = false;
             } else {
-                button_location.byte_offset = button_location.bit_index / 8 + (size_t)hid_using_reportid;
+                button_location.byte_offset = button_location.bit_index / 8 + (hid_reportid ? 1 : 0);
                 printf("[*] Button found at bit index %d, which is byte %d\n", button_location.bit_index, button_location.bit_index / 8);
                 printf("    Button byte offset: %d\n", button_location.byte_offset);
             }
@@ -295,7 +303,7 @@ static void check_offsets(void)
                 printf("[!] X found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", x_location.bit_index);
                 x_location.found = false;
             } else {
-                x_location.byte_offset = x_location.bit_index / 8 + (size_t)hid_using_reportid;
+                x_location.byte_offset = x_location.bit_index / 8 + (hid_reportid ? 1 : 0);
                 printf("[*] X found at bit index %d, which is byte %d\n", x_location.bit_index, x_location.bit_index / 8);
                 printf("    X size: %d bits, %d bytes\n", x_location.bit_size, x_location.bit_size / 8);
                 printf("    X byte offset: %d\n", x_location.byte_offset);
@@ -315,7 +323,7 @@ static void check_offsets(void)
                     y_location.bit_index);
                 y_location.found = false;
             } else {
-                y_location.byte_offset = y_location.bit_index / 8 + (size_t)hid_using_reportid;
+                y_location.byte_offset = y_location.bit_index / 8 + (hid_reportid ? 1 : 0);
                 printf("[*] Y found at bit index %d, which is byte %d\n", y_location.bit_index, y_location.bit_index / 8);
                 printf("    Y size: %d bits, %d bytes\n", y_location.bit_size, y_location.bit_size / 8);
                 printf("    Y byte offset: %d\n", y_location.byte_offset);
@@ -333,7 +341,7 @@ static void check_offsets(void)
                 printf("[!] Key found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", key_location.bit_index);
                 key_location.found = false;
             } else {
-                key_location.byte_offset = key_location.bit_index / 8 + (size_t)hid_using_reportid;
+                key_location.byte_offset = key_location.bit_index / 8 + (hid_reportid ? 1 : 0);
                 printf("[*] Key found at bit index %d, which is byte %d\n", key_location.bit_index, key_location.bit_index / 8);
                 printf("    Key byte offset: %d\n", key_location.byte_offset);
             }
@@ -388,7 +396,7 @@ void xlat_usb_hid_event(void)
 
         if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
             // check reportId for ULX
-            if (hid_using_reportid && (hid_raw_data[0] != 0x01)) {
+            if (hid_reportid && (hid_raw_data[0] != hid_reportid)) {
                 // ignore
                 goto out;
             }
@@ -470,7 +478,7 @@ void xlat_usb_hid_event(void)
 
         if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
             // check reportId for ULX
-            if (hid_using_reportid && (hid_raw_data[0] != 0x01)) {
+            if (hid_reportid && (hid_raw_data[0] != hid_reportid)) {
                 // ignore
                 goto out;
             }
@@ -644,14 +652,14 @@ void xlat_reset_latency(void)
     }
 }
 
-void xlat_set_using_reportid(bool use_reportid)
+void xlat_set_reportid(uint8_t reportid)
 {
-    hid_using_reportid = use_reportid;
+    hid_reportid = reportid;
 }
 
-bool xlat_get_using_reportid(void)
+uint8_t xlat_get_reportid(void)
 {
-    return hid_using_reportid;
+    return hid_reportid;
 }
 
 static void xlat_timer_callback(TimerHandle_t xTimer)
@@ -738,8 +746,7 @@ void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size)
     }
 
     // Check if using reportIDs:
-    hid_using_reportid = report_info.UsingReportIDs;
-    printf("Using reportIDs: %d\n", hid_using_reportid);
+    printf("Using reportIDs: %d\n", report_info.UsingReportIDs);
 
     // Find click and motion data offsets
     check_offsets();

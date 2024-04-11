@@ -86,8 +86,8 @@ uint32_t xlat_get_last_usb_timestamp_us(void);
 uint32_t xlat_get_last_button_timestamp_us(void);
 
 
-void xlat_set_using_reportid(bool use_reportid);
-bool xlat_get_using_reportid(void);
+void xlat_set_reportid(uint8_t reportid);
+uint8_t xlat_get_reportid(void);
 
 void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size);
 
