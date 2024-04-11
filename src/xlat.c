@@ -43,10 +43,12 @@ static volatile uint_fast8_t gpio_irq_producer = 0;
 static volatile uint_fast8_t gpio_irq_consumer = 0;
 
 // SETTINGS
-volatile bool       xlat_initialized = false;
-static xlat_mode_t  xlat_mode = XLAT_MODE_CLICK;
-static bool         hid_using_reportid = false;
-static bool         auto_trigger_level_high = false;
+volatile bool           xlat_initialized = false;
+static xlat_mode_t      xlat_mode = XLAT_MODE_CLICK;
+static bool             hid_using_reportid = false;
+static bool             auto_trigger_level_high = false;
+static xlat_interface_t xlat_interface = XLAT_INTERFACE_AUTO;
+static uint8_t          found_interface = 0xFF;
 
 // The Razer optical switches will constantly trigger the GPIO interrupt, while pressed
 // Waveform looks like this in ASCII art:
@@ -688,6 +690,26 @@ void xlat_auto_trigger_level_set(bool high)
 bool xlat_auto_trigger_level_is_high(void)
 {
     return auto_trigger_level_high;
+}
+
+void xlat_set_interface_selection(xlat_interface_t number)
+{
+    xlat_interface = number;
+}
+
+xlat_interface_t xlat_get_interface_selection()
+{
+    return xlat_interface;
+}
+
+void xlat_set_found_interface(uint8_t number)
+{
+    found_interface = number;
+}
+
+uint8_t xlat_get_found_interface()
+{
+    return found_interface;
 }
 
 void xlat_print_measurement(void)

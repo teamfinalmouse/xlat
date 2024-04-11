@@ -66,12 +66,20 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
     uint8_t num = 0U;
     uint8_t interface;
 
-    // First try to find a Mouse or Keyboard interface depending on the detection mode, specifically:
-    interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, (XLAT_MODE_KEY == xlat_get_mode()) ? HID_KEYBRD_BOOT_CODE : HID_MOUSE_BOOT_CODE);
+    // Handle the AUTO interface detection mode
+    if (XLAT_INTERFACE_AUTO == xlat_get_interface_selection()) {
+        // First try to find a Mouse or Keyboard interface depending on the detection mode, specifically:
+        interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, (XLAT_MODE_KEY == xlat_get_mode()) ? HID_KEYBRD_BOOT_CODE : HID_MOUSE_BOOT_CODE);
 
-    // Broaden the search criteria to no specific protocol
-    if (interface == 0xFFU) {
-        interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, 0xFFU);
+        // Broaden the search criteria to no specific protocol
+        if (interface == 0xFFU) {
+            interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, 0xFFU);
+        }
+    }
+    // Use the selected interface
+    else
+    {
+        interface = xlat_get_interface_selection() - XLAT_INTERFACE_0;;
     }
 
 #if 0
@@ -97,6 +105,8 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
     if (status != USBH_OK) {
         return USBH_FAIL;
     }
+
+    xlat_set_found_interface(interface);
 
     phost->pActiveClass->pData = (HID_HandleTypeDef *)USBH_malloc(sizeof(HID_HandleTypeDef));
     HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData;

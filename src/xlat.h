@@ -49,6 +49,19 @@ typedef enum xlat_mode {
     XLAT_MODE_KEY,
 } xlat_mode_t;
 
+typedef enum xlat_interface {
+    XLAT_INTERFACE_AUTO = -1,
+    XLAT_INTERFACE_0    = 0,
+    XLAT_INTERFACE_1,
+    XLAT_INTERFACE_2,
+    XLAT_INTERFACE_3,
+    XLAT_INTERFACE_4,
+    XLAT_INTERFACE_5,
+    XLAT_INTERFACE_6,
+    XLAT_INTERFACE_7,
+    XLAT_INTERFACE_8,
+} xlat_interface_t;
+
 extern volatile bool xlat_initialized;
 
 void xlat_init(void);
@@ -90,5 +103,11 @@ void xlat_clear_locations(void);
 void xlat_auto_trigger_action(void);
 void xlat_auto_trigger_level_set(bool high);
 bool xlat_auto_trigger_level_is_high(void);
+
+void xlat_set_interface_selection(xlat_interface_t number);
+xlat_interface_t xlat_get_interface_selection();
+
+void xlat_set_found_interface(uint8_t number);
+uint8_t xlat_get_found_interface();
 
 #endif //XLAT_H
