@@ -294,7 +294,7 @@ void gfx_set_byte_offsets_text(void)
         sprintf(text, "Keyboard Data (#%d): id@%d pressed@%d", interface, xlat_get_reportid(), key->byte_offset);
     } else {
         // offsets not found
-        sprintf(text, "Data: offsets not found");
+        sprintf(text, (XLAT_MODE_KEY == xlat_get_mode()) ? "Keyboard Data: offsets not found" : "Mouse Data: offsets not found");
     }
 
     lv_checkbox_set_text(hid_offsets_label, text);

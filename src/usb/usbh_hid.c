@@ -129,9 +129,9 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
         USBH_UsrLog("Mouse device found! (iface: %d)", interface);
         HID_Handle->Init = USBH_HID_MouseInit;
     } else {
-        USBH_UsrLog("bInterfaceProtocol %d not supported. Assuming Mouse... (iface: %d)",
-                    phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol, interface);
-        HID_Handle->Init = USBH_HID_MouseInit;
+        USBH_UsrLog("bInterfaceProtocol %d not supported. Assuming %s... (iface: %d)",
+                    phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol, (XLAT_MODE_KEY == xlat_get_mode()) ? "Keyboard" : "Mouse", interface);
+        HID_Handle->Init = (XLAT_MODE_KEY == xlat_get_mode()) ? USBH_HID_KeyboardInit : USBH_HID_MouseInit;
     }
 
     HID_Handle->state     = USBH_HID_INIT;
@@ -272,8 +272,11 @@ static USBH_StatusTypeDef USBH_HID_ClassRequest(USBH_HandleTypeDef *phost)
             if (classReqStatus == USBH_OK) {
                 HID_Handle->ctl_state = USBH_HID_REQ_IDLE;
 
-                /* all requests performed*/
-                phost->pUser(phost, HOST_USER_CLASS_ACTIVE);
+                if (phost->pUser != NULL)
+                {
+                    /* all requests performed*/
+                    phost->pUser(phost, HOST_USER_CLASS_ACTIVE);
+                }
                 status = USBH_OK;
             } else if (classReqStatus == USBH_NOT_SUPPORTED) {
                 USBH_ErrLog("Control error: HID: Device Set protocol request failed");
@@ -537,7 +540,7 @@ USBH_StatusTypeDef USBH_HID_SetIdle(USBH_HandleTypeDef *phost,
     phost->Control.setup.b.bRequest = USB_HID_SET_IDLE;
     phost->Control.setup.b.wValue.w = (uint16_t)(((uint32_t)duration << 8U) | (uint32_t)reportId);
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = 0U;
 
     return USBH_CtlReq(phost, NULL, 0U);
@@ -568,7 +571,7 @@ USBH_StatusTypeDef USBH_HID_SetReport(USBH_HandleTypeDef *phost,
     phost->Control.setup.b.bRequest = USB_HID_SET_REPORT;
     phost->Control.setup.b.wValue.w = (uint16_t)(((uint32_t)reportType << 8U) | (uint32_t)reportId);
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = reportLen;
 
     return USBH_CtlReq(phost, reportBuff, (uint16_t)reportLen);
@@ -599,7 +602,7 @@ USBH_StatusTypeDef USBH_HID_GetReport(USBH_HandleTypeDef *phost,
     phost->Control.setup.b.bRequest = USB_HID_GET_REPORT;
     phost->Control.setup.b.wValue.w = (uint16_t)(((uint32_t)reportType << 8U) | (uint32_t)reportId);
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = reportLen;
 
     return USBH_CtlReq(phost, reportBuff, (uint16_t)reportLen);
@@ -625,7 +628,7 @@ USBH_StatusTypeDef USBH_HID_SetProtocol(USBH_HandleTypeDef *phost,
         phost->Control.setup.b.wValue.w = 1U;
     }
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = 0U;
 
     return USBH_CtlReq(phost, NULL, 0U);

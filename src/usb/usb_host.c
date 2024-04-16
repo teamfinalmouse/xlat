@@ -82,6 +82,7 @@ static void USBH_UserProcess  (USBH_HandleTypeDef *phost, uint8_t id)
             break;
         }
 
+        case HOST_USER_NO_SUPPORTED_CLASS:
         case HOST_USER_CLASS_ACTIVE: {
             // Compose vidpid string
             uint16_t vid = phost->device.DevDesc.idVendor;
