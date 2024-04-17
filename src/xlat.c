@@ -390,129 +390,113 @@ void xlat_usb_hid_event(void)
     struct hid_event *hevt = evt.value.p;
     USBH_HandleTypeDef *phost = hevt->phost;
 
-    if (USBH_HID_GetDeviceType(phost) == HID_MOUSE)
-    {  // if the HID is Mouse
-        uint8_t hid_raw_data[64];
+    uint8_t hid_raw_data[64];
 
-        if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
-            // check reportId for ULX
-            if (hid_reportid && (hid_raw_data[0] != hid_reportid)) {
-                // ignore
-                goto out;
-            }
+    if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
+        // check reportId for ULX
+        if (hid_reportid && (hid_raw_data[0] != hid_reportid)) {
+            // ignore
+            goto out;
+        }
 #if 0
-            printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-            for (int i = 0; i < 8 /*sizeof(hid_raw_data) */; i++) {
-                printf("%02x ", hid_raw_data[i]);
-            }
-            printf("\n");
+        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+        for (int i = 0; i < 8 /*sizeof(hid_raw_data) */; i++) {
+            printf("%02x ", hid_raw_data[i]);
+        }
+        printf("\n");
 #endif
-            if (xlat_mode == XLAT_MODE_CLICK) {
-                // FOR BUTTONS/CLICKS:
-                // The correct location of button data is determined by parsing the HID descriptor
-                // This information is available in the button_location struct
+        if (xlat_mode == XLAT_MODE_CLICK) {
+            // FOR BUTTONS/CLICKS:
+            // The correct location of button data is determined by parsing the HID descriptor
+            // This information is available in the button_location struct
 
-                // First, check if the location was found
-                if (!button_location.found) {
-                    return;
-                }
-
-                static uint8_t prev_button = 0;
-                uint8_t button = hid_raw_data[button_location.byte_offset];
-
-                // Check if the button state has changed
-                if (button != prev_button) {
-                    // Only measure on button PRESS, not on RELEASE
-                    if (button > prev_button) {
-                        // Save the captured USB event timestamp
-                        last_usb_timestamp_us = hevt->timestamp;
-
-                        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-                        printf("Button: B=0x%02x @ %lu\n", button, hevt->timestamp);
-
-                        calculate_gpio_to_usb_time();
-                    }
-                }
-
-                // Save previous state
-                prev_button = button;
+            // First, check if the location was found
+            if (!button_location.found) {
+                return;
             }
-            else if (xlat_mode == XLAT_MODE_MOTION) {
-                // FOR MOTION:
-                // The correct location of button data is determined by parsing the HID descriptor
-                // This information is available in the [x|y]_location structs
 
-                // First, check if the locations were found
-                if ((!x_location.found) || (!y_location.found)) {
-                    return;
+            static uint8_t prev_button = 0;
+            uint8_t button = hid_raw_data[button_location.byte_offset];
+
+            // Check if the button state has changed
+            if (button != prev_button) {
+                // Only measure on button PRESS, not on RELEASE
+                if (button > prev_button) {
+                    // Save the captured USB event timestamp
+                    last_usb_timestamp_us = hevt->timestamp;
+
+                    printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+                    printf("Button: B=0x%02x @ %lu\n", button, hevt->timestamp);
+
+                    calculate_gpio_to_usb_time();
                 }
+            }
 
-                // Check X and Y data is contiguous
-                if ((x_location.byte_offset + x_location.bit_size / 8) != y_location.byte_offset) {
-                    return;
-                }
+            // Save previous state
+            prev_button = button;
+        }
+        else if (xlat_mode == XLAT_MODE_MOTION) {
+            // FOR MOTION:
+            // The correct location of button data is determined by parsing the HID descriptor
+            // This information is available in the [x|y]_location structs
 
-                size_t start_idx = x_location.byte_offset;
-                size_t length = (x_location.bit_size + y_location.bit_size) / 8;
+            // First, check if the locations were found
+            if ((!x_location.found) || (!y_location.found)) {
+                return;
+            }
 
-                // Loop over the data and check for non-zero values
-                // In case there is non-zero data, call calculate_gpio_to_usb_tine();
-                for (size_t idx = start_idx; idx < start_idx + length; idx++) {
-                    if (hid_raw_data[idx]) {
-                        // Save the captured USB event timestamp
-                        last_usb_timestamp_us = hevt->timestamp;
+            // Check X and Y data is contiguous
+            if ((x_location.byte_offset + x_location.bit_size / 8) != y_location.byte_offset) {
+                return;
+            }
 
-                        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-                        printf("Motion: X=0x%02x, Y=0x%02x @ %lu\n", hid_raw_data[x_location.byte_offset], hid_raw_data[y_location.byte_offset], hevt->timestamp);
+            size_t start_idx = x_location.byte_offset;
+            size_t length = (x_location.bit_size + y_location.bit_size) / 8;
 
-                        calculate_gpio_to_usb_time();
-                        break; // stop at the first bit of motion in this report
-                    }
+            // Loop over the data and check for non-zero values
+            // In case there is non-zero data, call calculate_gpio_to_usb_tine();
+            for (size_t idx = start_idx; idx < start_idx + length; idx++) {
+                if (hid_raw_data[idx]) {
+                    // Save the captured USB event timestamp
+                    last_usb_timestamp_us = hevt->timestamp;
+
+                    printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+                    printf("Motion: X=0x%02x, Y=0x%02x @ %lu\n", hid_raw_data[x_location.byte_offset], hid_raw_data[y_location.byte_offset], hevt->timestamp);
+
+                    calculate_gpio_to_usb_time();
+                    break; // stop at the first bit of motion in this report
                 }
             }
         }
-    }
-    else if (USBH_HID_GetDeviceType(phost) == HID_KEYBOARD)
-    {  // if the HID is Keyboard
-        uint8_t hid_raw_data[64];
+        else if (xlat_mode == XLAT_MODE_KEY) {
+            // FOR KEY/PRESSES:
+            // The correct location of key data is determined by parsing the HID descriptor
+            // This information is available in the key_location struct
 
-        if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
-            // check reportId for ULX
-            if (hid_reportid && (hid_raw_data[0] != hid_reportid)) {
-                // ignore
-                goto out;
+            // First, check if the location was found
+            if (!key_location.found) {
+                return;
             }
 
-            if (xlat_mode == XLAT_MODE_KEY) {
-                // FOR KEY/PRESSES:
-                // The correct location of key data is determined by parsing the HID descriptor
-                // This information is available in the key_location struct
+            static uint8_t prev_key = 0;
+            uint8_t key = hid_raw_data[key_location.byte_offset];
 
-                // First, check if the location was found
-                if (!key_location.found) {
-                    return;
+            // Check if the key state has changed
+            if (key != prev_key) {
+                // Only measure on key PRESS, not on RELEASE
+                if (key > prev_key) {
+                    // Save the captured USB event timestamp
+                    last_usb_timestamp_us = hevt->timestamp;
+
+                    printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+                    printf("Key: K=0x%02x @ %lu\n", key, hevt->timestamp);
+
+                    calculate_gpio_to_usb_time();
                 }
-
-                static uint8_t prev_key = 0;
-                uint8_t key = hid_raw_data[key_location.byte_offset];
-
-                // Check if the key state has changed
-                if (key != prev_key) {
-                    // Only measure on key PRESS, not on RELEASE
-                    if (key > prev_key) {
-                        // Save the captured USB event timestamp
-                        last_usb_timestamp_us = hevt->timestamp;
-
-                        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-                        printf("Key: K=0x%02x @ %lu\n", key, hevt->timestamp);
-
-                        calculate_gpio_to_usb_time();
-                    }
-                }
-
-                // Save previous state
-                prev_key = key;
             }
+
+            // Save previous state
+            prev_key = key;
         }
     }
 

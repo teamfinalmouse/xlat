@@ -701,7 +701,7 @@ HID_TypeTypeDef USBH_HID_GetDeviceType(USBH_HandleTypeDef *phost)
         } else if (InterfaceProtocol == HID_MOUSE_BOOT_CODE) {
             type = HID_MOUSE;
         } else {
-            type = HID_MOUSE; // fallback to mouse as well
+            type = HID_UNKNOWN;
         }
     }
     return type;
