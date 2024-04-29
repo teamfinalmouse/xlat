@@ -46,6 +46,7 @@ static size_t chart_point_count = 0;
 static lv_coord_t chart_y_range = 0;
 
 static lv_timer_t * trigger_timer = NULL;
+static lv_timer_t * trigger_timer_turn_off = NULL;
 
 static void chart_reset(void);
 
@@ -114,12 +115,20 @@ static void auto_trigger_clear_timer(void)
     trigger_timer = NULL;
 }
 
+void auto_trigger_turn_off_callback(lv_timer_t * timer)
+{
+    (void)timer;
+    xlat_auto_trigger_turn_off_action();
+}
+
 void auto_trigger_callback(lv_timer_t * timer)
 {
     char label[20];
     size_t * count = timer->user_data;
 
     xlat_auto_trigger_action();
+    trigger_timer_turn_off = lv_timer_create(auto_trigger_turn_off_callback, AUTO_TRIGGER_PRESSED_PERIOD_MS, NULL);
+    lv_timer_set_repeat_count(trigger_timer_turn_off, 1);
 
     *count = (*count) - 1;
     if (*count) {
