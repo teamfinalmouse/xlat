@@ -603,7 +603,12 @@ enum xlat_mode xlat_get_mode(void)
 void xlat_auto_trigger_action(void)
 {
     HAL_GPIO_WritePin(ARDUINO_D11_GPIO_Port, ARDUINO_D11_Pin, auto_trigger_level_high ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    HAL_Delay(20);
+//    HAL_Delay(40);
+//    HAL_GPIO_WritePin(ARDUINO_D11_GPIO_Port, ARDUINO_D11_Pin, auto_trigger_level_high ? GPIO_PIN_RESET : GPIO_PIN_SET);
+}
+
+void xlat_auto_trigger_turn_off_action(void)
+{
     HAL_GPIO_WritePin(ARDUINO_D11_GPIO_Port, ARDUINO_D11_Pin, auto_trigger_level_high ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
