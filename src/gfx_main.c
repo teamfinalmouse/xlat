@@ -298,9 +298,9 @@ void gfx_set_byte_offsets_text(void)
     uint8_t               interface = xlat_get_found_interface();
 
     if (button->found && x->found && y->found && XLAT_MODE_KEY != xlat_get_mode()) {
-        sprintf(text, "Mouse Data (#%d): id@%d click@%d motion@%d,%d", interface, xlat_get_reportid(), button->byte_offset, x->byte_offset, y->byte_offset);
+        sprintf(text, "Mouse Data (#%d): id%d click@%d motion@%d,%d", interface, xlat_get_reportid(), button->byte_offset, x->byte_offset, y->byte_offset);
     } else if (key->found && XLAT_MODE_KEY == xlat_get_mode()) {
-        sprintf(text, "Keyboard Data (#%d): id@%d pressed@%d", interface, xlat_get_reportid(), key->byte_offset);
+        sprintf(text, "Keyboard Data (#%d): id%d pressed@%d", interface, xlat_get_reportid(), key->byte_offset);
     } else {
         // offsets not found
         sprintf(text, (XLAT_MODE_KEY == xlat_get_mode()) ? "Keyboard Data: offsets not found" : "Mouse Data: offsets not found");

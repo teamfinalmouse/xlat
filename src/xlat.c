@@ -393,7 +393,7 @@ void xlat_usb_hid_event(void)
     uint8_t hid_raw_data[64];
 
     if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
-        // check reportId for ULX
+        // check reportId
         if (hid_reportid && (hid_raw_data[0] != hid_reportid)) {
             // ignore
             goto out;

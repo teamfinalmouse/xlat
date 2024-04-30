@@ -98,16 +98,18 @@ static void event_handler(lv_event_t* e)
                 // Motion [M]
                 case 1:
                     xlat_set_mode(XLAT_MODE_MOTION);
-                break;
+                    break;
 
-                // Key [K]
+                    // Key [K]
                 case 2:
                     xlat_set_mode(XLAT_MODE_KEY);
-                break;
+                    break;
 
-                // Click [M]
+                    // Click [M]
+                case 3:
                 default:
                     xlat_set_mode(XLAT_MODE_CLICK);
+                    break;
             }
         }
         else if (obj == (lv_obj_t *)interface_dropdown) {
@@ -118,11 +120,12 @@ static void event_handler(lv_event_t* e)
                 // Auto
                 case 0:
                     xlat_set_interface_selection(XLAT_INTERFACE_AUTO);
-                break;
+                    break;
 
                 // Any specific interface number
                 default:
                     xlat_set_interface_selection(XLAT_INTERFACE_0 + sel - 1);
+                    break;
             }
         }
         else {
@@ -275,10 +278,11 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     switch (interface_selection) {
         case XLAT_INTERFACE_AUTO:
             interface_index = 0;
-        break;
+            break;
 
         default:
             interface_index = 1 + interface_selection - XLAT_INTERFACE_0;
+            break;
     }
 
     lv_dropdown_set_selected((lv_obj_t *) interface_dropdown, interface_index);

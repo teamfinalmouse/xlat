@@ -482,7 +482,6 @@ USBH_StatusTypeDef USBH_Process(USBH_HandleTypeDef *phost)
   __IO USBH_StatusTypeDef status = USBH_FAIL;
   uint8_t idx = 0U;
   uint8_t i = 0U;
-  bool stop = false;
 
   /* check for Host pending port disconnect event */
   if (phost->device.is_disconnected == 1U)
@@ -709,15 +708,15 @@ USBH_StatusTypeDef USBH_Process(USBH_HandleTypeDef *phost)
       {
         phost->pActiveClass = NULL;
 
-        for (idx = 0U, stop = false; idx < USBH_MAX_NUM_SUPPORTED_CLASS && !stop; idx++)
+        for (idx = 0U; idx < USBH_MAX_NUM_SUPPORTED_CLASS; idx++)
         {
           // Check if the device has an interface where the class is supported
-          for (i = 0U; i < USBH_MAX_NUM_INTERFACES && !stop; i++)
+          for (i = 0U; i < USBH_MAX_NUM_INTERFACES; i++)
           {
             if (phost->pClass[idx]->ClassCode == phost->device.CfgDesc.Itf_Desc[i].bInterfaceClass)
             {
               phost->pActiveClass = phost->pClass[idx];
-              stop = true;
+              break;
             }
           }
         }
