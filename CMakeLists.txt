@@ -142,6 +142,7 @@ set(USB_Sources
         src/usb/usbh_pipes.c
         src/usb/usbh_hid.c
         src/usb/usbh_hid_mouse.c
+        src/usb/usbh_hid_keyboard.c
 )
 
 add_definitions(

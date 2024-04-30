@@ -43,10 +43,12 @@ static volatile uint_fast8_t gpio_irq_producer = 0;
 static volatile uint_fast8_t gpio_irq_consumer = 0;
 
 // SETTINGS
-volatile bool       xlat_initialized = false;
-static xlat_mode_t  xlat_mode = XLAT_MODE_CLICK;
-static bool         hid_using_reportid = false;
-static bool         auto_trigger_level_high = false;
+volatile bool           xlat_initialized = false;
+static xlat_mode_t      xlat_mode = XLAT_MODE_CLICK;
+static uint8_t          hid_reportid = 0;
+static bool             auto_trigger_level_high = false;
+static xlat_interface_t xlat_interface = XLAT_INTERFACE_AUTO;
+static uint8_t          found_interface = 0xFF;
 
 // The Razer optical switches will constantly trigger the GPIO interrupt, while pressed
 // Waveform looks like this in ASCII art:
@@ -69,6 +71,7 @@ static TimerHandle_t xlat_timer_handle;
 hid_data_location_t button_location;
 hid_data_location_t x_location;
 hid_data_location_t y_location;
+hid_data_location_t key_location;
 
 static inline void hidreport_print_item(HID_ReportItem_t *item)
 {
@@ -166,6 +169,8 @@ static void hidreport_check_item(HID_ReportItem_t *item)
                         x_location.found = true;
                         x_location.bit_index = item->BitOffset;
                         x_location.bit_size = item->Attributes.BitSize;
+
+                        hid_reportid = item->ReportID;
                     }
                     break;
 
@@ -175,8 +180,20 @@ static void hidreport_check_item(HID_ReportItem_t *item)
                         y_location.found = true;
                         y_location.bit_index = item->BitOffset;
                         y_location.bit_size = item->Attributes.BitSize;
+
+                        hid_reportid = item->ReportID;
                     }
                     break;
+            }
+            break;
+
+        case 0x07:
+            printf("    Usage.Page:  Keyboard/Keypad (0x0007)\n");
+            if (!key_location.found) {
+                key_location.found = true;
+                key_location.bit_index = item->BitOffset;
+
+                hid_reportid = item->ReportID;
             }
             break;
 
@@ -185,6 +202,8 @@ static void hidreport_check_item(HID_ReportItem_t *item)
             if (!button_location.found) {
                 button_location.found = true;
                 button_location.bit_index = item->BitOffset;
+
+                hid_reportid = item->ReportID;
             }
             break;
 
@@ -257,58 +276,79 @@ static void check_offsets(void)
 {
     printf("\n");
 
-    if (hid_using_reportid) {
-        printf("[*] Using reportId, so actual report data is starting at index [1]\n");
+    if (hid_reportid) {
+        printf("[*] Using reportId '%d', so actual report data is starting at index [1]\n", hid_reportid);
     }
 
-    if (button_location.found) {
-        if (button_location.bit_index % 8) {
-            printf("[!] Button found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", button_location.bit_index);
+    // Only print offsets relevant for a mouse
+    if (XLAT_MODE_KEY != xlat_mode)
+    {
+        if (button_location.found) {
+            if (button_location.bit_index % 8) {
+                printf("[!] Button found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", button_location.bit_index);
+                button_location.found = false;
+            } else {
+                button_location.byte_offset = button_location.bit_index / 8 + (hid_reportid ? 1 : 0);
+                printf("[*] Button found at bit index %d, which is byte %d\n", button_location.bit_index, button_location.bit_index / 8);
+                printf("    Button byte offset: %d\n", button_location.byte_offset);
+            }
+        } else {
             button_location.found = false;
-        } else {
-            button_location.byte_offset = button_location.bit_index / 8 + (size_t)hid_using_reportid;
-            printf("[*] Button found at bit index %d, which is byte %d\n", button_location.bit_index, button_location.bit_index / 8);
-            printf("    Button byte offset: %d\n", button_location.byte_offset);
+            printf("[x] Button not found\n");
         }
-    } else {
-        button_location.found = false;
-        printf("[x] Button not found\n");
-    }
 
-    // X offset has to start at a byte boundary
-    if (x_location.found) {
-        if (x_location.bit_index % 8) {
-            printf("[!] X found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", x_location.bit_index);
+        // X offset has to start at a byte boundary
+        if (x_location.found) {
+            if (x_location.bit_index % 8) {
+                printf("[!] X found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", x_location.bit_index);
+                x_location.found = false;
+            } else {
+                x_location.byte_offset = x_location.bit_index / 8 + (hid_reportid ? 1 : 0);
+                printf("[*] X found at bit index %d, which is byte %d\n", x_location.bit_index, x_location.bit_index / 8);
+                printf("    X size: %d bits, %d bytes\n", x_location.bit_size, x_location.bit_size / 8);
+                printf("    X byte offset: %d\n", x_location.byte_offset);
+            }
+        } else {
             x_location.found = false;
-        } else {
-            x_location.byte_offset = x_location.bit_index / 8 + (size_t)hid_using_reportid;
-            printf("[*] X found at bit index %d, which is byte %d\n", x_location.bit_index, x_location.bit_index / 8);
-            printf("    X size: %d bits, %d bytes\n", x_location.bit_size, x_location.bit_size / 8);
-            printf("    X byte offset: %d\n", x_location.byte_offset);
+            printf("[x] X not found\n");
         }
-    } else {
-        x_location.found = false;
-        printf("[x] X not found\n");
-    }
 
-    // Y offset does NOT have to start at a byte boundary,
-    // but it has to be contiguous to X
-    // and their total size has to be a multiple of 8
-    if (y_location.found) {
-        if ((y_location.bit_index % 8) &&
-                ((y_location.bit_index - x_location.bit_index) != x_location.bit_size)) {
-            printf("[!] Y found at bit index %d, which is not a multiple of 8, and not contiguous to X. Currently not supported by XLAT.\n",
-                   y_location.bit_index);
-            y_location.found = false;
+        // Y offset does NOT have to start at a byte boundary,
+        // but it has to be contiguous to X
+        // and their total size has to be a multiple of 8
+        if (y_location.found) {
+            if ((y_location.bit_index % 8) &&
+                    ((y_location.bit_index - x_location.bit_index) != x_location.bit_size)) {
+                printf("[!] Y found at bit index %d, which is not a multiple of 8, and not contiguous to X. Currently not supported by XLAT.\n",
+                    y_location.bit_index);
+                y_location.found = false;
+            } else {
+                y_location.byte_offset = y_location.bit_index / 8 + (hid_reportid ? 1 : 0);
+                printf("[*] Y found at bit index %d, which is byte %d\n", y_location.bit_index, y_location.bit_index / 8);
+                printf("    Y size: %d bits, %d bytes\n", y_location.bit_size, y_location.bit_size / 8);
+                printf("    Y byte offset: %d\n", y_location.byte_offset);
+            }
         } else {
-            y_location.byte_offset = y_location.bit_index / 8 + (size_t)hid_using_reportid;
-            printf("[*] Y found at bit index %d, which is byte %d\n", y_location.bit_index, y_location.bit_index / 8);
-            printf("    Y size: %d bits, %d bytes\n", y_location.bit_size, y_location.bit_size / 8);
-            printf("    Y byte offset: %d\n", y_location.byte_offset);
+            y_location.found = false;
+            printf("[x] Y not found\n");
         }
-    } else {
-        y_location.found = false;
-        printf("[x] Y not found\n");
+    }
+    // Only print offsets relevant for a keyboard
+    else
+    {
+        if (key_location.found) {
+            if (key_location.bit_index % 8) {
+                printf("[!] Key found at bit index %d, which is not a multiple of 8. Currently not supported by XLAT.\n", key_location.bit_index);
+                key_location.found = false;
+            } else {
+                key_location.byte_offset = key_location.bit_index / 8 + (hid_reportid ? 1 : 0);
+                printf("[*] Key found at bit index %d, which is byte %d\n", key_location.bit_index, key_location.bit_index / 8);
+                printf("    Key byte offset: %d\n", key_location.byte_offset);
+            }
+        } else {
+            key_location.found = false;
+            printf("[x] Key not found\n");
+        }
     }
 
     printf("\n");
@@ -350,86 +390,113 @@ void xlat_usb_hid_event(void)
     struct hid_event *hevt = evt.value.p;
     USBH_HandleTypeDef *phost = hevt->phost;
 
-    if (USBH_HID_GetDeviceType(phost) == HID_MOUSE)
-    {  // if the HID is Mouse
-        uint8_t hid_raw_data[64];
+    uint8_t hid_raw_data[64];
 
-        if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
-            // check reportId for ULX
-            if (hid_using_reportid && (hid_raw_data[0] != 0x01)) {
-                // ignore
-                goto out;
-            }
+    if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
+        // check reportId for ULX
+        if (hid_reportid && (hid_raw_data[0] != hid_reportid)) {
+            // ignore
+            goto out;
+        }
 #if 0
-            printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-            for (int i = 0; i < 8 /*sizeof(hid_raw_data) */; i++) {
-                printf("%02x ", hid_raw_data[i]);
-            }
-            printf("\n");
+        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+        for (int i = 0; i < 8 /*sizeof(hid_raw_data) */; i++) {
+            printf("%02x ", hid_raw_data[i]);
+        }
+        printf("\n");
 #endif
-            if (xlat_mode == XLAT_MODE_CLICK) {
-                // FOR BUTTONS/CLICKS:
-                // The correct location of button data is determined by parsing the HID descriptor
-                // This information is available in the button_location struct
+        if (xlat_mode == XLAT_MODE_CLICK) {
+            // FOR BUTTONS/CLICKS:
+            // The correct location of button data is determined by parsing the HID descriptor
+            // This information is available in the button_location struct
 
-                // First, check if the location was found
-                if (!button_location.found) {
-                    return;
-                }
-
-                static uint8_t prev_button = 0;
-                uint8_t button = hid_raw_data[button_location.byte_offset];
-
-                // Check if the button state has changed
-                if (button != prev_button) {
-                    // Only measure on button PRESS, not on RELEASE
-                    if (button > prev_button) {
-                        // Save the captured USB event timestamp
-                        last_usb_timestamp_us = hevt->timestamp;
-
-                        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-                        printf("Button: B=0x%02x @ %lu\n", button, hevt->timestamp);
-
-                        calculate_gpio_to_usb_time();
-                    }
-                }
-
-                // Save previous state
-                prev_button = button;
+            // First, check if the location was found
+            if (!button_location.found) {
+                return;
             }
-            else if (xlat_mode == XLAT_MODE_MOTION) {
-                // FOR MOTION:
-                // The correct location of button data is determined by parsing the HID descriptor
-                // This information is available in the [x|y]_location structs
 
-                // First, check if the locations were found
-                if ((!x_location.found) || (!y_location.found)) {
-                    return;
-                }
+            static uint8_t prev_button = 0;
+            uint8_t button = hid_raw_data[button_location.byte_offset];
 
-                // Check X and Y data is contiguous
-                if ((x_location.byte_offset + x_location.bit_size / 8) != y_location.byte_offset) {
-                    return;
-                }
+            // Check if the button state has changed
+            if (button != prev_button) {
+                // Only measure on button PRESS, not on RELEASE
+                if (button > prev_button) {
+                    // Save the captured USB event timestamp
+                    last_usb_timestamp_us = hevt->timestamp;
 
-                size_t start_idx = x_location.byte_offset;
-                size_t length = (x_location.bit_size + y_location.bit_size) / 8;
+                    printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+                    printf("Button: B=0x%02x @ %lu\n", button, hevt->timestamp);
 
-                // Loop over the data and check for non-zero values
-                // In case there is non-zero data, call calculate_gpio_to_usb_tine();
-                for (size_t idx = start_idx; idx < start_idx + length; idx++) {
-                    if (hid_raw_data[idx]) {
-                        // Save the captured USB event timestamp
-                        last_usb_timestamp_us = hevt->timestamp;
-
-                        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-                        printf("Motion: X=0x%02x, Y=0x%02x @ %lu\n", hid_raw_data[x_location.byte_offset], hid_raw_data[y_location.byte_offset], hevt->timestamp);
-
-                        calculate_gpio_to_usb_time();
-                        break; // stop at the first bit of motion in this report
-                    }
+                    calculate_gpio_to_usb_time();
                 }
             }
+
+            // Save previous state
+            prev_button = button;
+        }
+        else if (xlat_mode == XLAT_MODE_MOTION) {
+            // FOR MOTION:
+            // The correct location of button data is determined by parsing the HID descriptor
+            // This information is available in the [x|y]_location structs
+
+            // First, check if the locations were found
+            if ((!x_location.found) || (!y_location.found)) {
+                return;
+            }
+
+            // Check X and Y data is contiguous
+            if ((x_location.byte_offset + x_location.bit_size / 8) != y_location.byte_offset) {
+                return;
+            }
+
+            size_t start_idx = x_location.byte_offset;
+            size_t length = (x_location.bit_size + y_location.bit_size) / 8;
+
+            // Loop over the data and check for non-zero values
+            // In case there is non-zero data, call calculate_gpio_to_usb_tine();
+            for (size_t idx = start_idx; idx < start_idx + length; idx++) {
+                if (hid_raw_data[idx]) {
+                    // Save the captured USB event timestamp
+                    last_usb_timestamp_us = hevt->timestamp;
+
+                    printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+                    printf("Motion: X=0x%02x, Y=0x%02x @ %lu\n", hid_raw_data[x_location.byte_offset], hid_raw_data[y_location.byte_offset], hevt->timestamp);
+
+                    calculate_gpio_to_usb_time();
+                    break; // stop at the first bit of motion in this report
+                }
+            }
+        }
+        else if (xlat_mode == XLAT_MODE_KEY) {
+            // FOR KEY/PRESSES:
+            // The correct location of key data is determined by parsing the HID descriptor
+            // This information is available in the key_location struct
+
+            // First, check if the location was found
+            if (!key_location.found) {
+                return;
+            }
+
+            static uint8_t prev_key = 0;
+            uint8_t key = hid_raw_data[key_location.byte_offset];
+
+            // Check if the key state has changed
+            if (key != prev_key) {
+                // Only measure on key PRESS, not on RELEASE
+                if (key > prev_key) {
+                    // Save the captured USB event timestamp
+                    last_usb_timestamp_us = hevt->timestamp;
+
+                    printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+                    printf("Key: K=0x%02x @ %lu\n", key, hevt->timestamp);
+
+                    calculate_gpio_to_usb_time();
+                }
+            }
+
+            // Save previous state
+            prev_key = key;
         }
     }
 
@@ -569,14 +636,14 @@ void xlat_reset_latency(void)
     }
 }
 
-void xlat_set_using_reportid(bool use_reportid)
+void xlat_set_reportid(uint8_t reportid)
 {
-    hid_using_reportid = use_reportid;
+    hid_reportid = reportid;
 }
 
-bool xlat_get_using_reportid(void)
+uint8_t xlat_get_reportid(void)
 {
-    return hid_using_reportid;
+    return hid_reportid;
 }
 
 static void xlat_timer_callback(TimerHandle_t xTimer)
@@ -626,6 +693,26 @@ bool xlat_auto_trigger_level_is_high(void)
     return auto_trigger_level_high;
 }
 
+void xlat_set_interface_selection(xlat_interface_t number)
+{
+    xlat_interface = number;
+}
+
+xlat_interface_t xlat_get_interface_selection()
+{
+    return xlat_interface;
+}
+
+void xlat_set_found_interface(uint8_t number)
+{
+    found_interface = number;
+}
+
+uint8_t xlat_get_found_interface()
+{
+    return found_interface;
+}
+
 void xlat_print_measurement(void)
 {
     // print the new measurement to the console in csv format
@@ -652,8 +739,7 @@ void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size)
     }
 
     // Check if using reportIDs:
-    hid_using_reportid = report_info.UsingReportIDs;
-    printf("Using reportIDs: %d\n", hid_using_reportid);
+    printf("Using reportIDs: %d\n", report_info.UsingReportIDs);
 
     // Find click and motion data offsets
     check_offsets();
@@ -681,12 +767,18 @@ hid_data_location_t * xlat_get_y_location(void)
     return &y_location;
 }
 
+hid_data_location_t * xlat_get_key_location(void)
+{
+    return &key_location;
+}
+
 void xlat_clear_locations(void)
 {
     printf("Clearing locations\n");
     button_location.found = false;
     x_location.found = false;
     y_location.found = false;
+    key_location.found = false;
 }
 
 void xlat_init(void)

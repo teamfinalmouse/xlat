@@ -27,6 +27,7 @@ lv_dropdown_t *edge_dropdown;
 lv_slider_t *debounce_dropdown;
 lv_dropdown_t *trigger_dropdown;
 lv_dropdown_t *detection_dropdown;
+lv_dropdown_t *interface_dropdown;
 lv_obj_t *prev_screen = NULL; // Pointer to store previous screen
 
 LV_IMG_DECLARE(xlat_logo);
@@ -92,12 +93,36 @@ static void event_handler(lv_event_t* e)
         else if (obj == (lv_obj_t *)detection_dropdown) {
             // Detection mode changed
             uint16_t sel = lv_dropdown_get_selected(obj);
-            if (sel == 0) {
-                // Click
-                xlat_set_mode(XLAT_MODE_CLICK);
-            } else {
-                // Motion
-                xlat_set_mode(XLAT_MODE_MOTION);
+
+            switch (sel) {
+                // Motion [M]
+                case 1:
+                    xlat_set_mode(XLAT_MODE_MOTION);
+                break;
+
+                // Key [K]
+                case 2:
+                    xlat_set_mode(XLAT_MODE_KEY);
+                break;
+
+                // Click [M]
+                default:
+                    xlat_set_mode(XLAT_MODE_CLICK);
+            }
+        }
+        else if (obj == (lv_obj_t *)interface_dropdown) {
+            // Interface number changed
+            uint16_t sel = lv_dropdown_get_selected(obj);
+
+            switch (sel) {
+                // Auto
+                case 0:
+                    xlat_set_interface_selection(XLAT_INTERFACE_AUTO);
+                break;
+
+                // Any specific interface number
+                default:
+                    xlat_set_interface_selection(XLAT_INTERFACE_0 + sel - 1);
             }
         }
         else {
@@ -146,15 +171,25 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_add_event_cb((struct _lv_obj_t *) trigger_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
 
 
-    // Click vs. motion detection label
+    // Click, motion & key detection label
     lv_obj_t *detection_mode = lv_label_create(settings_screen);
     lv_label_set_text(detection_mode, "Detection Mode:");
     lv_obj_align_to(detection_mode, trigger_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
-    // Click vs. motion detection dropdown
+    // Click, motion & key detection dropdown
     detection_dropdown = (lv_dropdown_t *) lv_dropdown_create(settings_screen);
-    lv_dropdown_set_options((lv_obj_t *) detection_dropdown, "Click\nMotion");
+    lv_dropdown_set_options((lv_obj_t *) detection_dropdown, "Click [M]\nMotion [M]\nKey [K]");
     lv_obj_add_event_cb((struct _lv_obj_t *) detection_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
+
+    // Interface selection label
+    lv_obj_t *interface_label = lv_label_create(settings_screen);
+    lv_label_set_text(interface_label, "Interface Number:");
+    lv_obj_align_to(interface_label, detection_mode, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
+
+    // Interface selection dropdown
+    interface_dropdown = (lv_dropdown_t *) lv_dropdown_create(settings_screen);
+    lv_dropdown_set_options((lv_obj_t *) interface_dropdown, "AUTO\n0\n1\n2\n3\n4\n5\n6\n7\n8");
+    lv_obj_add_event_cb((struct _lv_obj_t *) interface_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
 
     // If we don't add this label, the y-value of the last item will be 0
     lv_obj_t *debounce_label2 = lv_label_create(settings_screen);
@@ -173,6 +208,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_align((struct _lv_obj_t *) debounce_dropdown, LV_ALIGN_DEFAULT, max_width + widget_gap, lv_obj_get_y(debounce_label) - 10);
     lv_obj_align((struct _lv_obj_t *) trigger_dropdown, LV_ALIGN_DEFAULT, max_width + widget_gap, lv_obj_get_y(trigger_label) - 10);
     lv_obj_align((struct _lv_obj_t *) detection_dropdown, LV_ALIGN_DEFAULT, max_width + widget_gap, lv_obj_get_y(detection_mode) - 10);
+    lv_obj_align((struct _lv_obj_t *) interface_dropdown, LV_ALIGN_DEFAULT, max_width + widget_gap, lv_obj_get_y(interface_label) - 10);
 
     // Print all y-values for debugging
     //printf("edge_label y: %d\n", lv_obj_get_y(edge_label));
@@ -222,7 +258,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_dropdown_set_selected((lv_obj_t *) debounce_dropdown, debounce_index);
 
     // Display current detection mode
-    lv_dropdown_set_selected((lv_obj_t *) detection_dropdown, xlat_get_mode() == XLAT_MODE_MOTION);
+    lv_dropdown_set_selected((lv_obj_t *) detection_dropdown, xlat_get_mode());
 
 
     // Display current detection edge
@@ -231,5 +267,19 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     // Display current auto-trigger level
     lv_dropdown_set_selected((lv_obj_t *) trigger_dropdown, xlat_auto_trigger_level_is_high());
 
-}
 
+    // Display current interface selection
+    uint16_t interface_index = 0;
+    xlat_interface_t interface_selection = xlat_get_interface_selection();
+
+    switch (interface_selection) {
+        case XLAT_INTERFACE_AUTO:
+            interface_index = 0;
+        break;
+
+        default:
+            interface_index = 1 + interface_selection - XLAT_INTERFACE_0;
+    }
+
+    lv_dropdown_set_selected((lv_obj_t *) interface_dropdown, interface_index);
+}

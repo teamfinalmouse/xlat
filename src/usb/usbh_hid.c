@@ -20,6 +20,7 @@
 #include "usbh_hid_parser.h"
 #include "xlat.h"
 #include "usbh_hid_mouse.h"
+#include "usbh_hid_keyboard.h"
 
 
 static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost);
@@ -65,12 +66,20 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
     uint8_t num = 0U;
     uint8_t interface;
 
-    // First try to find a Mouse interface, specifically:
-    interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, HID_MOUSE_BOOT_CODE);
+    // Handle the AUTO interface detection mode
+    if (XLAT_INTERFACE_AUTO == xlat_get_interface_selection()) {
+        // First try to find a Mouse or Keyboard interface depending on the detection mode, specifically:
+        interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, (XLAT_MODE_KEY == xlat_get_mode()) ? HID_KEYBRD_BOOT_CODE : HID_MOUSE_BOOT_CODE);
 
-    // Broaden the search criteria to no specific protocol
-    if (interface == 0xFFU) {
-        interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, 0xFFU);
+        // Broaden the search criteria to no specific protocol
+        if (interface == 0xFFU) {
+            interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, 0xFFU);
+        }
+    }
+    // Use the selected interface
+    else
+    {
+        interface = xlat_get_interface_selection() - XLAT_INTERFACE_0;;
     }
 
 #if 0
@@ -97,6 +106,8 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
         return USBH_FAIL;
     }
 
+    xlat_set_found_interface(interface);
+
     phost->pActiveClass->pData = (HID_HandleTypeDef *)USBH_malloc(sizeof(HID_HandleTypeDef));
     HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData;
 
@@ -113,13 +124,14 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
     /*Decode Bootclass Protocol: Mouse or Keyboard, see HID_KEYBRD_BOOT_CODE, HID_MOUSE_BOOT_CODE */
     if (phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol == HID_KEYBRD_BOOT_CODE) {
         USBH_UsrLog("KeyBoard device found! (iface: %d)", interface);
+        HID_Handle->Init = USBH_HID_KeyboardInit;
     } else if (phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol  == HID_MOUSE_BOOT_CODE) {
         USBH_UsrLog("Mouse device found! (iface: %d)", interface);
         HID_Handle->Init = USBH_HID_MouseInit;
     } else {
-        USBH_UsrLog("bInterfaceProtocol %d not supported. Assuming Mouse... (iface: %d)",
-                    phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol, interface);
-        HID_Handle->Init = USBH_HID_MouseInit;
+        USBH_UsrLog("bInterfaceProtocol %d not supported. Assuming %s... (iface: %d)",
+                    phost->device.CfgDesc.Itf_Desc[interface].bInterfaceProtocol, (XLAT_MODE_KEY == xlat_get_mode()) ? "Keyboard" : "Mouse", interface);
+        HID_Handle->Init = (XLAT_MODE_KEY == xlat_get_mode()) ? USBH_HID_KeyboardInit : USBH_HID_MouseInit;
     }
 
     HID_Handle->state     = USBH_HID_INIT;
@@ -260,8 +272,11 @@ static USBH_StatusTypeDef USBH_HID_ClassRequest(USBH_HandleTypeDef *phost)
             if (classReqStatus == USBH_OK) {
                 HID_Handle->ctl_state = USBH_HID_REQ_IDLE;
 
-                /* all requests performed*/
-                phost->pUser(phost, HOST_USER_CLASS_ACTIVE);
+                if (phost->pUser != NULL)
+                {
+                    /* all requests performed*/
+                    phost->pUser(phost, HOST_USER_CLASS_ACTIVE);
+                }
                 status = USBH_OK;
             } else if (classReqStatus == USBH_NOT_SUPPORTED) {
                 USBH_ErrLog("Control error: HID: Device Set protocol request failed");
@@ -525,7 +540,7 @@ USBH_StatusTypeDef USBH_HID_SetIdle(USBH_HandleTypeDef *phost,
     phost->Control.setup.b.bRequest = USB_HID_SET_IDLE;
     phost->Control.setup.b.wValue.w = (uint16_t)(((uint32_t)duration << 8U) | (uint32_t)reportId);
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = 0U;
 
     return USBH_CtlReq(phost, NULL, 0U);
@@ -556,7 +571,7 @@ USBH_StatusTypeDef USBH_HID_SetReport(USBH_HandleTypeDef *phost,
     phost->Control.setup.b.bRequest = USB_HID_SET_REPORT;
     phost->Control.setup.b.wValue.w = (uint16_t)(((uint32_t)reportType << 8U) | (uint32_t)reportId);
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = reportLen;
 
     return USBH_CtlReq(phost, reportBuff, (uint16_t)reportLen);
@@ -587,7 +602,7 @@ USBH_StatusTypeDef USBH_HID_GetReport(USBH_HandleTypeDef *phost,
     phost->Control.setup.b.bRequest = USB_HID_GET_REPORT;
     phost->Control.setup.b.wValue.w = (uint16_t)(((uint32_t)reportType << 8U) | (uint32_t)reportId);
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = reportLen;
 
     return USBH_CtlReq(phost, reportBuff, (uint16_t)reportLen);
@@ -613,7 +628,7 @@ USBH_StatusTypeDef USBH_HID_SetProtocol(USBH_HandleTypeDef *phost,
         phost->Control.setup.b.wValue.w = 1U;
     }
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = 0U;
 
     return USBH_CtlReq(phost, NULL, 0U);
@@ -686,7 +701,7 @@ HID_TypeTypeDef USBH_HID_GetDeviceType(USBH_HandleTypeDef *phost)
         } else if (InterfaceProtocol == HID_MOUSE_BOOT_CODE) {
             type = HID_MOUSE;
         } else {
-            type = HID_MOUSE; // fallback to mouse as well
+            type = HID_UNKNOWN;
         }
     }
     return type;
