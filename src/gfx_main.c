@@ -69,7 +69,7 @@ void gfx_set_device_label(const char * manufacturer, const char * productname, c
     lv_label_set_text(manufacturer_label, manufacturer);
     lv_label_set_text(productname_label, productname);
 
-    lv_obj_align(manufacturer_label, LV_ALIGN_TOP_RIGHT, 0, 0);
+    lv_obj_align(manufacturer_label, LV_ALIGN_TOP_RIGHT, -5, 5);
     lv_obj_align_to(vidpid_label, manufacturer_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
     lv_obj_align_to(productname_label, manufacturer_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
 }
@@ -317,7 +317,7 @@ static void gfx_xlat_gui(void)
     // Draw logo
     lv_obj_t * logo = lv_img_create(lv_scr_act());
     lv_img_set_src(logo, &xlat_logo);
-    lv_obj_align(logo, LV_ALIGN_TOP_LEFT, 10, 10);
+    lv_obj_align(logo, LV_ALIGN_TOP_LEFT, 12, 5);
 
     ///////////////////////////
     // DEVICE INFO TOP RIGHT //
