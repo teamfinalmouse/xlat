@@ -185,11 +185,18 @@ static void chart_reset(void)
 
 static void chart_update(uint32_t value)
 {
-    lv_chart_set_next_value(chart, lv_chart_get_series_next(chart, NULL), (lv_coord_t)value);
-
     chart_point_count++;
 
-    value = value > INT16_MAX ? INT16_MAX : value; // clip to 16-bit signed (lv_coord_t)
+    // clip to the nearest rounded down 1000
+#if LV_USE_LARGE_COORD
+    value = value > (INT32_MAX / 1000 * 1000) ? (INT32_MAX / 1000 * 1000) : value;
+#else
+    value = value > (INT16_MAX / 1000 * 1000) ? (INT16_MAX / 1000 * 1000) : value;
+#endif
+
+    lv_chart_set_next_value(chart, lv_chart_get_series_next(chart, NULL), (lv_coord_t)value);
+
+    // can't overflow because we clipped down to the nearest 1000 within signed while value is unsigned
     value = (value + 999) / 1000 * 1000; // round up to nearest 1000
 
     // update y-axis range if needed
