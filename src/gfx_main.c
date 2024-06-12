@@ -28,8 +28,12 @@
 #define Y_CHART_SIZE_X 410
 #define Y_CHART_SIZE_Y 130
 
-#define X_CHART_RANGE 1000
 #define Y_CHART_RANGE 2000
+
+#define X_CHART_TICKS_MAJOR 11
+#define X_CHART_TICKS_MINOR 1
+#define Y_CHART_TICKS_MAJOR 6
+#define Y_CHART_TICKS_MINOR 2
 
 lv_color_t lv_color_lightblue = LV_COLOR_MAKE(0xa6, 0xd1, 0xd1);
 
@@ -215,23 +219,24 @@ static void chart_update(uint32_t value)
  * See how the chart changes drawing mode (draw only vertical lines) when
  * the points get too crowded.
  */
-void lv_chart_new(lv_coord_t xrange, lv_coord_t yrange)
+void lv_chart_new(lv_coord_t yrange)
 {
     // Create a chart
     chart = lv_chart_create(lv_scr_act());
     lv_obj_set_size(chart, Y_CHART_SIZE_X, Y_CHART_SIZE_Y);
     lv_obj_align(chart, LV_ALIGN_CENTER, 20, 10);
     lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, yrange);
-    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_X, 0, xrange);
 
     // Do not display points on the data
     lv_obj_set_style_size(chart, 0, LV_PART_INDICATOR);
 
     lv_chart_add_series(chart, lv_color_lightblue, LV_CHART_AXIS_PRIMARY_Y);
 
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 10, 5, 11, 2, true, 20);
-    // Y-axis: major tick every 1ms
-    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 5 + 1, 2, true, 60);
+    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 10, 5, X_CHART_TICKS_MAJOR, X_CHART_TICKS_MINOR, true, 20);
+    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, Y_CHART_TICKS_MAJOR, Y_CHART_TICKS_MINOR, true, 60);
+
+    // Set the amount of data points according to the X axis tick count
+    lv_chart_set_point_count(chart, (X_CHART_TICKS_MAJOR - 1) * X_CHART_TICKS_MINOR + 1);
 
     chart_y_range = yrange;
 }
@@ -404,7 +409,7 @@ static void gfx_xlat_gui(void)
     ///////////
     // CHART //
     ///////////
-    lv_chart_new(X_CHART_RANGE, Y_CHART_RANGE);
+    lv_chart_new(Y_CHART_RANGE);
     lv_chart_add_cursor(chart, lv_color_white(), LV_DIR_TOP);
 }
 
