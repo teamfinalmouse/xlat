@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Install arm-none-eabi-gcc toolchain
       run: |
@@ -22,7 +22,7 @@ jobs:
         sudo apt-get install -y gcc-arm-none-eabi
 
     - name: Cache arm-none-eabi-gcc toolchain
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: /usr/local/bin/arm-none-eabi-gcc
         key: ${{ runner.os }}-arm-none-eabi-gcc-${{ hashFiles('**/build.yml') }}
@@ -42,7 +42,7 @@ jobs:
       run: make -j8
 
     - name: Upload Firmware
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
           name: firmware
           path: build/xlat.elf
