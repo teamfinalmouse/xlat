@@ -303,15 +303,13 @@ static void new_theme_init_and_set(void)
 void gfx_set_byte_offsets_text(void)
 {
     char text[100];
-    hid_data_location_t * button = xlat_get_button_location();
-    hid_data_location_t * x = xlat_get_x_location();
-    hid_data_location_t * y = xlat_get_y_location();
+    uint16_t button_bits = xlat_get_button_bits();
+    uint16_t motion_bits = xlat_get_motion_bits();
 
-    if (button->found && x->found && y->found) {
-        sprintf(text, "Data: click@%d motion@%d,%d", button->byte_offset, x->byte_offset, y->byte_offset);
+    if (button_bits || motion_bits) {
+        sprintf(text, "Data (%u): %u button, %u motion bits", xlat_get_report_id(), button_bits, motion_bits);
     } else {
-        // offsets not found
-        sprintf(text, "Data: offsets not found");
+        sprintf(text, "Data: locations not found");
     }
 
     lv_checkbox_set_text(hid_offsets_label, text);

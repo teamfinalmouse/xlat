@@ -30,13 +30,6 @@ typedef struct hid_event {
     uint32_t timestamp;
 } hid_event_t;
 
-typedef struct hid_data_location {
-    bool found;
-    size_t bit_index;
-    size_t bit_size;
-    size_t byte_offset;
-} hid_data_location_t;
-
 typedef enum latency_type {
     LATENCY_GPIO_TO_USB = 0,
     LATENCY_AUDIO_TO_USB,
@@ -72,18 +65,14 @@ uint32_t xlat_counter_1mhz_get(void);
 uint32_t xlat_get_last_usb_timestamp_us(void);
 uint32_t xlat_get_last_button_timestamp_us(void);
 
-
-void xlat_set_using_reportid(bool use_reportid);
-bool xlat_get_using_reportid(void);
-
 void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size);
 
 void xlat_set_mode(enum xlat_mode mode);
 enum xlat_mode xlat_get_mode(void);
 
-hid_data_location_t * xlat_get_button_location(void);
-hid_data_location_t * xlat_get_x_location(void);
-hid_data_location_t * xlat_get_y_location(void);
+uint16_t xlat_get_button_bits(void);
+uint16_t xlat_get_motion_bits(void);
+uint16_t xlat_get_report_id(void);
 void xlat_clear_locations(void);
 
 void xlat_auto_trigger_action(void);
