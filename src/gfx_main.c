@@ -24,6 +24,7 @@
 #include "gfx_settings.h"
 #include "stdio_glue.h"
 #include "usb_host.h"
+#include "hardware_config.h"
 
 #define Y_CHART_SIZE_X 410
 #define Y_CHART_SIZE_Y 130
@@ -144,6 +145,7 @@ void auto_trigger_callback(lv_timer_t * timer)
         lv_timer_set_period(timer, AUTO_TRIGGER_PERIOD_MS + (rand() % 10));
     } else {
         auto_trigger_clear_timer();
+        hw_exti_interrupts_enable();
     }
 }
 
@@ -158,7 +160,9 @@ static void btn_trigger_event_cb(lv_event_t * e)
             // Already running
             count = 0;
             auto_trigger_clear_timer();
+            hw_exti_interrupts_enable();
         } else {
+            hw_exti_interrupts_disable();
             // Trigger a new series of measurements
             printf("AutoTrigger activated\n");
             count = 1000;

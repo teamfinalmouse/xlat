@@ -351,6 +351,7 @@ static void MX_TIM1_Init(void)
 static void MX_TIM2_Init(void)
 {
     TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_OC_InitTypeDef sConfigOC = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
 
     htim2.Instance = TIM2;
@@ -368,6 +369,18 @@ static void MX_TIM2_Init(void)
     {
         Error_Handler();
     }
+    if (HAL_TIM_OC_Init(&htim2) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    sConfigOC.OCMode = TIM_OCMODE_TOGGLE;
+    sConfigOC.Pulse = 0;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+    if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
     sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
     sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
     if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
@@ -377,6 +390,11 @@ static void MX_TIM2_Init(void)
 
     // Start as free-running timer right away
     HAL_TIM_Base_Start(&htim2);
+    if (HAL_TIM_OC_Start(&htim2, TIM_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    HAL_TIM_MspPostInit(&htim2);
 }
 
 /**
