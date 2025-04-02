@@ -21,8 +21,8 @@ set(CMAKE_ASM_SOURCE_FILE_EXTENSIONS s)
 
 # Define the application version
 set(APP_VERSION_MAJOR 1)
-set(APP_VERSION_MINOR 4)
-set(APP_VERSION_PATCH 0) # patch level 99 = work-in-progress for next release
+set(APP_VERSION_MINOR 5)
+set(APP_VERSION_PATCH 99) # patch level 99 = work-in-progress for next release
 set(APP_VERSION_STRING "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}")
 
 add_compile_options(
@@ -55,6 +55,7 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/libs/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1
         ${CMAKE_SOURCE_DIR}/libs/lufa
         ${CMAKE_SOURCE_DIR}/libs/lvgl
+        ${CMAKE_SOURCE_DIR}/libs/tinyusb/include
         ${CMAKE_SOURCE_DIR}/libs/RTT/RTT
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/src/config
@@ -157,6 +158,15 @@ add_definitions(
 )
 
 add_subdirectory(libs/lvgl)
+add_subdirectory(libs/tinyusb/src)
+
+set(TINYUSB_Sources
+        src/tinyusb.c
+        src/tinyusb_hid_app.c
+        libs/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c
+        libs/tinyusb/src/portable/synopsys/dwc2/hcd_dwc2.c
+        libs/tinyusb/src/portable/synopsys/dwc2/dwc2_common.c
+)
 
 target_compile_options(lvgl PRIVATE -DSTM32F7)
 
@@ -184,7 +194,10 @@ add_executable(${PROJECT_NAME}
         ${FREERTOS_Sources}
         ${RTT_Sources}
         ${USB_Sources}
+        ${TINYUSB_Sources}
         )
+
+tinyusb_target_add(${PROJECT_NAME})
 
 # Get the GIT SHA
 execute_process(
@@ -219,7 +232,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
         )
 
 add_custom_target(${PROJECT_NAME}.bin ALL DEPENDS ${PROJECT_NAME})
-add_custom_command(TARGET ${PROJECT_NAME}.bin
+add_custom_command(TARGET ${PROJECT_NAME}.bin POST_BUILD
         COMMAND ${CMAKE_C_OBJCOPY} ARGS -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})

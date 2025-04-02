@@ -23,10 +23,11 @@
 #include "xlat.h"
 #include "gfx_main.h"
 #include "stdio_glue.h"
-
+#include "tinyusb.h"
 
 osThreadId xlatTaskHandle;
 osThreadId lvglTaskHandle;
+osThreadId usbHostTaskHandle;
 
 osPoolDef(hidevt_pool, 16, hid_event_t);               // Define memory pool
 osPoolId  hidevt_pool;
@@ -56,7 +57,7 @@ void xlat_task(void const * argument)
     msgQGfxTask = osMessageCreate(osMessageQ(msgQGfxTask), NULL);    // create msg queue
 
     /* init code for USB_HOST */
-    MX_USB_HOST_Init();
+    // MX_USB_HOST_Init();
 
     /* UART test */
     printf("\n");
@@ -108,6 +109,8 @@ int main(void)
     xlatTaskHandle = osThreadCreate(osThread(xlatTask), NULL);
     osThreadDef(lvglTask, lvgl_task, osPriorityLow, 0, 4096 / 4);
     lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
+    osThreadDef(usbHostTask, usb_host_task, osPriorityHigh, 0, 4096 / 4);
+    usbHostTaskHandle = osThreadCreate(osThread(usbHostTask), NULL);
 
     /* Start scheduler */
     osKernelStart();

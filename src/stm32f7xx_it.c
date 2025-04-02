@@ -19,6 +19,8 @@
 #include "main.h"
 #include "stm32f7xx_it.h"
 
+#include <tusb.h>
+
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -176,14 +178,6 @@ void TIM6_DAC_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles USB On The Go HS global interrupt.
-  */
-void OTG_HS_IRQHandler(void)
-{
-    HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
-}
-
-/**
   * @brief This function handles LTDC global interrupt.
   */
 void LTDC_IRQHandler(void)
@@ -191,3 +185,18 @@ void LTDC_IRQHandler(void)
     HAL_LTDC_IRQHandler(&hltdc);
 }
 
+/**
+  * @brief Forward USB interrupt events to TinyUSB IRQ Handler
+  */
+void OTG_FS_IRQHandler(void) {
+  tusb_int_handler(0, true);
+}
+
+/**
+ * @brief Forward USB interrupt events to TinyUSB IRQ Handler
+ * Despite being called USB2_OTG
+ * OTG_HS is marked as RHPort1 by TinyUSB to be consistent across stm32 port
+ */
+void OTG_HS_IRQHandler(void) {
+  tusb_int_handler(1, true);
+}
