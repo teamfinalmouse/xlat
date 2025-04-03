@@ -23,7 +23,7 @@
 #include "xlat.h"
 #include "gfx_main.h"
 #include "stdio_glue.h"
-#include "tinyusb.h"
+#include "usb_task.h"
 
 osThreadId xlatTaskHandle;
 osThreadId lvglTaskHandle;
@@ -76,7 +76,8 @@ void xlat_task(void const * argument)
 
     /* Infinite loop */
     for(;;) {
-        xlat_usb_hid_event(); // blocking
+        vTaskDelay(1000 / portTICK_RATE_MS);
+        //XXX FIXME: xlat_usb_hid_event(); // blocking
     }
 }
 

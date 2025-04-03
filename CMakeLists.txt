@@ -134,17 +134,6 @@ set(LUFA_Sources
         libs/lufa/Drivers/USB/Class/Common/HIDParser.c
 )
 
-set(USB_Sources
-        src/usb/usbh_conf.c
-        src/usb/usb_host.c
-        src/usb/usbh_core.c
-        src/usb/usbh_ctlreq.c
-        src/usb/usbh_ioreq.c
-        src/usb/usbh_pipes.c
-        src/usb/usbh_hid.c
-        src/usb/usbh_hid_mouse.c
-)
-
 add_definitions(
         -DSTM32
         -DSTM32F7
@@ -161,7 +150,7 @@ add_subdirectory(libs/lvgl)
 add_subdirectory(libs/tinyusb/src)
 
 set(TINYUSB_Sources
-        src/tinyusb.c
+        src/usb_task.c
         src/tinyusb_hid_app.c
         libs/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c
         libs/tinyusb/src/portable/synopsys/dwc2/hcd_dwc2.c
@@ -193,7 +182,6 @@ add_executable(${PROJECT_NAME}
         ${LUFA_Sources}
         ${FREERTOS_Sources}
         ${RTT_Sources}
-        ${USB_Sources}
         ${TINYUSB_Sources}
         )
 
