@@ -15,14 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <stdio.h>
-#include <stdbool.h>
 #include "main.h"
 #include "cmsis_os.h"
-#include "usb_host.h"
 #include "hardware_config.h"
 #include "xlat.h"
 #include "gfx_main.h"
-#include "stdio_glue.h"
 #include "usb_task.h"
 
 osThreadId xlatTaskHandle;
@@ -36,62 +33,13 @@ osPoolDef(gfxevt_pool, 16, gfx_event_t);               // Define memory pool
 osPoolId  gfxevt_pool;
 
 osMessageQDef(msgQUsbClick, 16, hid_event_t *);              // Define message queue
-osMessageQId  msgQUsbClick;
+osMessageQId  msgQUsbHidEvent;
 
 osMessageQDef(msgQGfxTask, 4, gfx_event_t *);              // Define message queue
 osMessageQId  msgQGfxTask;
 
 // LVGL mutex
 SemaphoreHandle_t lvgl_mutex;
-
-/**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
-void xlat_task(void const * argument)
-{
-    hidevt_pool = osPoolCreate(osPool(hidevt_pool)); // create memory pool
-    gfxevt_pool = osPoolCreate(osPool(gfxevt_pool)); // create memory pool
-    msgQUsbClick = osMessageCreate(osMessageQ(msgQUsbClick), NULL);  // create msg queue
-    msgQGfxTask = osMessageCreate(osMessageQ(msgQGfxTask), NULL);    // create msg queue
-
-    /* init code for USB_HOST */
-    // MX_USB_HOST_Init();
-
-    /* UART test */
-    printf("\n");
-    printf("******************************\n");
-    printf("Welcome to XLAT v%s\n", APP_VERSION_FULL);
-    printf("******************************\n\n");
-
-    vcp_writestr("\n");
-    vcp_writestr("******************************\n");
-    vcp_writestr("Welcome to XLAT v");
-    vcp_writestr(APP_VERSION_FULL);
-    vcp_writestr("\n");
-    vcp_writestr("******************************\n\n");
-
-    xlat_init();
-
-    /* Infinite loop */
-    for(;;) {
-        vTaskDelay(1000 / portTICK_RATE_MS);
-        //XXX FIXME: xlat_usb_hid_event(); // blocking
-    }
-}
-
-void lvgl_task(void const *argument)
-{
-    while(!xlat_initialized) {
-        osDelay(1);
-    }
-
-    while (1) {
-        gfx_task();
-        osDelay(1);
-    }
-}
 
 /**
   * @brief  The application entry point.
@@ -105,10 +53,15 @@ int main(void)
 
     lvgl_mutex = xSemaphoreCreateMutex();
 
+    hidevt_pool = osPoolCreate(osPool(hidevt_pool)); // create memory pool
+    gfxevt_pool = osPoolCreate(osPool(gfxevt_pool)); // create memory pool
+    msgQUsbHidEvent = osMessageCreate(osMessageQ(msgQUsbClick), NULL);  // create msg queue
+    msgQGfxTask = osMessageCreate(osMessageQ(msgQGfxTask), NULL);    // create msg queue
+
     /* Create the thread(s) */
     osThreadDef(xlatTask, xlat_task, osPriorityNormal, 0, 4096 / 4);
     xlatTaskHandle = osThreadCreate(osThread(xlatTask), NULL);
-    osThreadDef(lvglTask, lvgl_task, osPriorityLow, 0, 4096 / 4);
+    osThreadDef(lvglTask, gfx_task, osPriorityLow, 0, 4096 / 4);
     lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
     osThreadDef(usbHostTask, usb_host_task, osPriorityHigh, 0, 4096 / 4);
     usbHostTaskHandle = osThreadCreate(osThread(usbHostTask), NULL);
@@ -143,6 +96,6 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     ex: printf("Wrong parameters value: file %s on line %d\n", file, line) */
 }
 #endif /* USE_FULL_ASSERT */

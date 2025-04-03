@@ -29,6 +29,10 @@
 
 #include "stm32f7xx_hal.h"
 #include "usb_task.h"
+
+#include <cmsis_os.h>
+#include <xlat.h>
+
 #include "tusb.h"
 #include "tusb_config.h"
 
@@ -119,8 +123,12 @@ void usb_host_task(void const *param) {
     .speed = TUSB_SPEED_AUTO
   };
 
+  while(!xlat_initialized) {
+    osDelay(1);
+  }
+
   if (!tusb_init(BOARD_TUH_RHPORT, &host_init)) {
-    printf("Failed to init USB Host Stack\r\n");
+    printf("Failed to init USB Host Stack\n");
     vTaskSuspend(NULL);
   }
 
@@ -129,8 +137,6 @@ void usb_host_task(void const *param) {
   enum { IOPINS1_ADDR  = 20u << 3, /* 0xA0 */ };
   tuh_max3421_reg_write(BOARD_TUH_RHPORT, IOPINS1_ADDR, 0x01, false);
 #endif
-
-  hid_app_init();
 
   // RTOS forever loop
   while (1) {
@@ -204,7 +210,7 @@ static void update_string_descriptors(uint8_t daddr, tusb_desc_device_t *desc_de
     }
 
     // Update VID/PID string
-    snprintf(vidpid_string, sizeof(vidpid_string), "VID:%04x PID:%04x", 
+    snprintf(vidpid_string, sizeof(vidpid_string), "%04x:%04x",
             desc_device->idVendor, desc_device->idProduct);
 
 }
@@ -214,21 +220,23 @@ void tuh_mount_cb(uint8_t daddr) {
     // Get device descriptor first
     tusb_desc_device_t desc_device;
 
-    printf("Device with address %d mounted\r\n", daddr);
+    printf("Device with address %d mounted\n", daddr);
 
     if (tuh_descriptor_get_device_sync(daddr, &desc_device, sizeof(desc_device)) == XFER_RESULT_SUCCESS) {
         // Update string descriptors
         update_string_descriptors(daddr, &desc_device);
         
-        printf("\t-> %04x:%04x %s: %s\r\n",
+        printf("\t-> %04x:%04x %s: %s\n",
                desc_device.idVendor, desc_device.idProduct,
                manufacturer_string, product_string);
     }
 }
 
+// XXX FIXME: doesn't seem to be called
 void tuh_umount_cb(uint8_t dev_addr) {
   // application tear-down
-  printf("A device with address %d is unmounted \r\n", dev_addr);
+  printf("A device with address %d is unmounted\n", dev_addr);
+  xlat_clear_device_info();
 }
 
 

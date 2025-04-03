@@ -15,15 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "gfx_main.h"
 
+#include <main.h>
+#include <usb_task.h>
+
+#include "cmsis_os.h"
 #include "lvgl/lvgl.h"
 #include "touchpad/touchpad.h"
 #include "tft/tft.h"
 #include "xlat.h"
 #include "gfx_settings.h"
-#include "stdio_glue.h"
-#include "usb_host.h"
 
 #define Y_CHART_SIZE_X 410
 #define Y_CHART_SIZE_Y 130
@@ -425,21 +430,31 @@ void gfx_init(void)
 }
 
 
-void gfx_task(void)
+void gfx_task(void const * argument)
 {
-    xSemaphoreTake(lvgl_mutex, portMAX_DELAY);
-    lv_task_handler();
-    xSemaphoreGive(lvgl_mutex);
+    (void)argument;
 
-    if (osMessageWaiting(msgQGfxTask)) {
-        // pop the message
-        osEvent evt = osMessageGet(msgQGfxTask, 0);
-        if (evt.status != osEventMessage) {
-            return;
-        }
+    while (!xlat_initialized) {
+        osDelay(1);
+    }
 
-        struct gfx_event *g_evt = evt.value.p;
-        switch (g_evt->type) {
+    while (1) {
+        xSemaphoreTake(lvgl_mutex, portMAX_DELAY);
+        lv_task_handler();
+        xSemaphoreGive(lvgl_mutex);
+
+        if (osMessageWaiting(msgQGfxTask))
+        {
+            // pop the message
+            osEvent evt = osMessageGet(msgQGfxTask, 0);
+            if (evt.status != osEventMessage)
+            {
+                return;
+            }
+
+            struct gfx_event* g_evt = evt.value.p;
+            switch (g_evt->type)
+            {
             case GFX_EVENT_MEASUREMENT:
                 // New measurement received
 
@@ -468,10 +483,13 @@ void gfx_task(void)
                 gfx_set_device_label("", "No USB device connected", "");
                 gfx_set_byte_offsets_text();
                 break;
+            }
+
+            // free event memory
+            osPoolFree(gfxevt_pool, g_evt);
         }
 
-        // free event memory
-        osPoolFree(gfxevt_pool, g_evt);
+        osDelay(1);
     }
 }
 

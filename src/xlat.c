@@ -15,17 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* For LVGL / GFX */
+#include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
+
+/* For LVGL / GFX */
 #include "touchpad/touchpad.h"
 #include "gfx_main.h"
 
 #include "main.h"
 #include "xlat.h"
-#include "usbh_hid.h"
 #include "stm32f7xx_hal_tim.h"
 #include "hardware_config.h"
 #include "stdio_glue.h"
+#include "class/hid/hid.h"
 
 // LUFA HID Parser
 #define __INCLUDE_FROM_USB_DRIVER // NOLINT(*-reserved-identifier)
@@ -204,24 +207,6 @@ bool CALLBACK_HIDParser_FilterHIDReportItem(HID_ReportItem_t* const CurrentItem)
 }
 
 
-static USBH_StatusTypeDef USBH_HID_GetRawData(USBH_HandleTypeDef *phost, uint8_t *hid_raw_data)
-{
-    HID_HandleTypeDef *HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData;
-
-    if (HID_Handle->length == 0U) {
-        return USBH_FAIL;
-    }
-
-    /* Fill report */
-    if (USBH_HID_FifoRead(&HID_Handle->fifo,
-                          hid_raw_data,
-                          HID_Handle->length) == HID_Handle->length) {
-        return USBH_OK;
-    }
-    return   USBH_FAIL;
-}
-
-
 static int calculate_gpio_to_usb_time(void)
 {
     // only accept if there was a gpio irq first
@@ -280,49 +265,61 @@ uint32_t xlat_counter_1mhz_get(void)
 }
 
 
-void xlat_usb_hid_event(void)
+void xlat_process_usb_hid_event(void)
 {
     osEvent evt;
-    evt = osMessageGet(msgQUsbClick, osWaitForever);  // wait for message
+    evt = osMessageGet(msgQUsbHidEvent, osWaitForever);  // wait for message
     if (evt.status != osEventMessage) {
         return;
     }
 
     struct hid_event *hevt = evt.value.p;
-    USBH_HandleTypeDef *phost = hevt->phost;
 
-    if (USBH_HID_GetDeviceType(phost) == HID_MOUSE)
-    {  // if the HID is Mouse
-        uint8_t hid_raw_data[REPORT_LEN];
+    if (hevt->itf_protocol == HID_ITF_PROTOCOL_MOUSE) {
+        uint8_t *hid_raw_data = hevt->report;
 
-        if (USBH_HID_GetRawData(phost, hid_raw_data) == USBH_OK) {
-            if ((report_id != 0) && (hid_raw_data[0] != report_id)) {
-                // ignore
-                goto out;
-            }
+        // XXX FIXME: same as below?
+        if ((report_id != 0) && (hid_raw_data[0] != report_id)) {
+            // ignore
+            goto out;
+        }
+
+        // check reportId for ULX
+        if (hid_using_reportid && (hid_raw_data[0] != 0x01)) { // fixme: should we check the reportId instead of hard coding?
+            // ignore
+            goto out;
+        }
+
 #if 0
-            printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-            for (int i = 0; i < 8 /*sizeof(hid_raw_data) */; i++) {
-                printf("%02x ", hid_raw_data[i]);
-            }
-            printf("\n");
+        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+        for (int i = 0; i < 8 /*sizeof(hid_raw_data) */; i++) {
+            printf("%02x ", hid_raw_data[i]);
+        }
+        printf("\n");
 #endif
-            if (xlat_mode == XLAT_MODE_CLICK) {
-                for (uint8_t i = (report_id ? 1 : 0); i < REPORT_LEN; i++) {
-                    if (((hid_raw_data[i] ^ prev_report[i]) & hid_raw_data[i] & button_mask[i])) {
-                        last_usb_timestamp_us = hevt->timestamp;
-                        calculate_gpio_to_usb_time();
-                        break;
-                    }
+        // FOR BUTTONS/CLICKS:
+        if (xlat_mode == XLAT_MODE_CLICK) {
+            // The correct location of button data is determined by parsing the HID descriptor
+            // This information is available in the button_mask
+            for (uint8_t i = (report_id ? 1 : 0); i < REPORT_LEN; i++) {
+                if (((hid_raw_data[i] ^ prev_report[i]) & hid_raw_data[i] & button_mask[i])) {
+                    last_usb_timestamp_us = hevt->timestamp;
+                    calculate_gpio_to_usb_time();
+                    printf("[%5lu] hid click @ %lu: ", xTaskGetTickCount(), hevt->timestamp);
+                    break;
                 }
             }
-            else if (xlat_mode == XLAT_MODE_MOTION) {
-                for (uint8_t i = (report_id ? 1 : 0); i < REPORT_LEN; i++) {
-                    if (hid_raw_data[i] & motion_mask[i]) {
-                        last_usb_timestamp_us = hevt->timestamp;
-                        calculate_gpio_to_usb_time();
-                        break;
-                    }
+        }
+        // FOR MOTION:
+        else if (xlat_mode == XLAT_MODE_MOTION) {
+            // The correct location of button data is determined by parsing the HID descriptor
+            // This information is available in the motion_mask
+            for (uint8_t i = (report_id ? 1 : 0); i < REPORT_LEN; i++) {
+                if (hid_raw_data[i] & motion_mask[i]) {
+                    last_usb_timestamp_us = hevt->timestamp;
+                    calculate_gpio_to_usb_time();
+                    printf("[%5lu] hid motion @ %lu: ", xTaskGetTickCount(), hevt->timestamp);
+                    break;
                 }
             }
             memcpy(prev_report, hid_raw_data, sizeof(prev_report));
@@ -365,8 +362,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     xTimerStartFromISR(xlat_timer_handle, NULL);
 
     // print the event
-    printf("[%5lu] GPIO interrupt for pin: %3d @ %lu\n", xTaskGetTickCountFromISR(), GPIO_Pin, cnt);
-    printf("GPIO irq 0x%x @ %lu\n", GPIO_Pin, cnt);
+    // printf("[%5lu] GPIO interrupt for pin: %3d @ %lu\n", xTaskGetTickCountFromISR(), GPIO_Pin, cnt);
+    // printf("GPIO irq 0x%x @ %lu\n", GPIO_Pin, cnt);
 }
 
 
@@ -377,16 +374,21 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   */
 
 // In this callback the timestamp is wrapped in an event and sent to the main thread
-void USBH_HID_EventCallback(USBH_HandleTypeDef *phost, uint32_t timestamp)
+void xlat_usb_event_callback(uint32_t timestamp, uint8_t const *report, size_t report_size, uint8_t itf_protocol)
 {
     struct hid_event *evt;
 
     HAL_GPIO_WritePin(ARDUINO_D5_GPIO_Port, ARDUINO_D5_Pin, 1);
 
-    evt = osPoolAlloc(hidevt_pool);                     // Allocate memory for the message
+    evt = osPoolAlloc(hidevt_pool); // Allocate memory for the message
     evt->timestamp = timestamp;
-    evt->phost = phost;
-    osMessagePut(msgQUsbClick, (uint32_t)evt, 0U);
+    evt->itf_protocol = itf_protocol;
+    if (report_size > sizeof(evt->report)) {
+        report_size = sizeof(evt->report);
+    }
+    evt->report_size = report_size;
+    memcpy(evt->report, report, report_size);
+    osMessagePut(msgQUsbHidEvent, (uint32_t)evt, 0U);
 
     HAL_GPIO_WritePin(ARDUINO_D5_GPIO_Port, ARDUINO_D5_Pin, 0);
 }
@@ -516,7 +518,7 @@ void xlat_print_measurement(void)
 {
     // print the new measurement to the console in csv format
     char buf[50];
-    snprintf(buf, sizeof(buf), "%lu;%lu;%lu;%lu\r\n",
+    snprintf(buf, sizeof(buf), "%lu;%lu;%lu;%lu\n",
              xlat_get_latency_count(LATENCY_GPIO_TO_USB),
              xlat_get_latency_us(LATENCY_GPIO_TO_USB),
              xlat_get_average_latency(LATENCY_GPIO_TO_USB),
@@ -559,6 +561,18 @@ void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size)
     osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
 }
 
+void xlat_clear_device_info(void)
+{
+    // Clear offsets
+    xlat_clear_locations();
+    // Send a message to the gfx thread, to refresh the device info
+    struct gfx_event* evt;
+    evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message
+    evt->type = GFX_EVENT_HID_DEVICE_DISCONNECTED;
+    evt->value = 0;
+    osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
+}
+
 uint16_t xlat_get_button_bits(void)
 {
     return button_bits;
@@ -595,6 +609,37 @@ void xlat_init(void)
     printf("XLAT initialized\n");
 
     char buf[50];
-    snprintf(buf, sizeof(buf), "count;latency_us;avg_us;stdev_us\r\n");
+    snprintf(buf, sizeof(buf), "count;latency_us;avg_us;stdev_us\n");
     vcp_writestr(buf);
+}
+
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+void xlat_task(void const * argument)
+{
+    (void)argument;
+
+    // RTT prints
+    printf("\n");
+    printf("******************************\n");
+    printf("Welcome to XLAT v%s\n", APP_VERSION_FULL);
+    printf("******************************\n\n");
+
+    // UART prints
+    vcp_writestr("\n");
+    vcp_writestr("******************************\n");
+    vcp_writestr("Welcome to XLAT v");
+    vcp_writestr(APP_VERSION_FULL);
+    vcp_writestr("\n");
+    vcp_writestr("******************************\n\n");
+
+    xlat_init();
+
+    /* Infinite loop */
+    for (;;) {
+        xlat_process_usb_hid_event(); // blocking
+    }
 }

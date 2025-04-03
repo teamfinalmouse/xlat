@@ -369,7 +369,7 @@ extern const osMessageQDef_t os_messageQ_def_MsgBox;
 
 extern osPoolId  hidevt_pool;
 extern osPoolId  gfxevt_pool;
-extern osMessageQId  msgQUsbClick;
+extern osMessageQId  msgQUsbHidEvent;
 extern osMessageQId  msgQGfxTask;
 extern SemaphoreHandle_t lvgl_mutex;
 

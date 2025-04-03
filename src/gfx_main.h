@@ -37,7 +37,7 @@ struct gfx_event {
 };
 
 void gfx_init(void);
-void gfx_task(void);
+void gfx_task(void const * argument);
 void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid);
 void gfx_set_trigger_ready(bool state);
 void gfx_set_byte_offsets_text();

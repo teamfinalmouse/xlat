@@ -17,8 +17,6 @@
 
 #include <stdio.h>
 #include "main.h"
-#include "cmsis_os.h"
-#include "usb_host.h"
 #include "xlat.h"
 #include "hardware_config.h"
 

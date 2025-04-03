@@ -20,14 +20,16 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "src/usb/usbh_def.h"
+#include <stddef.h>
 
 #define AUTO_TRIGGER_PERIOD_MS (150)
 #define AUTO_TRIGGER_PRESSED_PERIOD_MS (30)
 
 typedef struct hid_event {
-    USBH_HandleTypeDef *phost;
     uint32_t timestamp;
+    uint8_t report[64];
+    size_t report_size;
+    uint8_t itf_protocol;
 } hid_event_t;
 
 typedef enum latency_type {
@@ -45,7 +47,9 @@ typedef enum xlat_mode {
 extern volatile bool xlat_initialized;
 
 void xlat_init(void);
-void xlat_usb_hid_event(void);
+void xlat_task(void const * argument);
+void xlat_process_usb_hid_event(void);
+void xlat_usb_event_callback(uint32_t timestamp, uint8_t const *report, size_t report_size, uint8_t itf_protocol); // called from USB Host library
 
 uint32_t xlat_get_latency_us(enum latency_type type);
 uint32_t xlat_get_average_latency(enum latency_type type);
@@ -65,7 +69,11 @@ uint32_t xlat_counter_1mhz_get(void);
 uint32_t xlat_get_last_usb_timestamp_us(void);
 uint32_t xlat_get_last_button_timestamp_us(void);
 
-void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size);
+void xlat_set_using_reportid(bool use_reportid);
+bool xlat_get_using_reportid(void);
+
+void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size); // on device connect
+void xlat_clear_device_info(void); // on device disconnect
 
 void xlat_set_mode(enum xlat_mode mode);
 enum xlat_mode xlat_get_mode(void);
