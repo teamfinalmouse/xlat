@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include "gfx_settings.h"
+#include "gfx_main.h"
 #include "lvgl/lvgl.h"
 #include "xlat.h"
 #include "hardware_config.h"
@@ -56,7 +57,7 @@ static void event_handler(lv_event_t* e)
         } else if (obj == (lv_obj_t *)debounce_dropdown) {
             // Hold-off time changed
             uint16_t sel = lv_dropdown_get_selected(obj);
-            uint32_t val = 20;
+            uint32_t val = 100;
             switch (sel) {
                 case 0:
                     // Set hold-off time to 20ms
@@ -95,9 +96,15 @@ static void event_handler(lv_event_t* e)
             if (sel == 0) {
                 // Click
                 xlat_set_mode(XLAT_MODE_CLICK);
-            } else {
+                gfx_send_event(GFX_EVENT_MODE_CHANGED, 0); // to refresh the UI
+            } else if (sel == 1) {
                 // Motion
                 xlat_set_mode(XLAT_MODE_MOTION);
+                gfx_send_event(GFX_EVENT_MODE_CHANGED, 0); // to refresh the UI
+            } else if (sel == 2) {
+                // Key
+                xlat_set_mode(XLAT_MODE_KEY);
+                gfx_send_event(GFX_EVENT_MODE_CHANGED, 0); // to refresh the UI
             }
         }
         else {
@@ -153,7 +160,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
 
     // Click vs. motion detection dropdown
     detection_dropdown = (lv_dropdown_t *) lv_dropdown_create(settings_screen);
-    lv_dropdown_set_options((lv_obj_t *) detection_dropdown, "Click\nMotion");
+    lv_dropdown_set_options((lv_obj_t *) detection_dropdown, "Click\nMotion\nKey");
     lv_obj_add_event_cb((struct _lv_obj_t *) detection_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
 
     // If we don't add this label, the y-value of the last item will be 0
@@ -222,8 +229,8 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_dropdown_set_selected((lv_obj_t *) debounce_dropdown, debounce_index);
 
     // Display current detection mode
-    lv_dropdown_set_selected((lv_obj_t *) detection_dropdown, xlat_get_mode() == XLAT_MODE_MOTION);
-
+    uint8_t current_mode = xlat_get_mode();
+    lv_dropdown_set_selected((lv_obj_t *) detection_dropdown, (uint16_t)current_mode);
 
     // Display current detection edge
     lv_dropdown_set_selected((lv_obj_t *) edge_dropdown, hw_config_input_trigger_is_rising_edge());

@@ -311,10 +311,26 @@ void gfx_set_byte_offsets_text(void)
     uint16_t button_bits = xlat_get_button_bits();
     uint16_t motion_bits = xlat_get_motion_bits();
 
+    const char *mode_str;
+    switch (xlat_get_mode()) {
+        case XLAT_MODE_CLICK:
+            mode_str = "CLICK";
+            break;
+        case XLAT_MODE_MOTION:
+            mode_str = "MOTION";
+            break;
+        case XLAT_MODE_KEY:
+            mode_str = "KEY";
+            break;
+        default:
+            mode_str = "Unknown";
+    }
+
     if (button_bits || motion_bits) {
-        sprintf(text, "Data (%u): %u button, %u motion bits", xlat_get_report_id(), button_bits, motion_bits);
+        sprintf(text, "MODE: %s | Data (%u): %u button, %u motion bits", mode_str, xlat_get_report_id(), button_bits, motion_bits);
     } else {
-        sprintf(text, "Data: locations not found");
+        // offsets not found
+        sprintf(text, "MODE: %s | Data: locations not found", mode_str);
     }
 
     lv_checkbox_set_text(hid_offsets_label, text);
@@ -476,6 +492,8 @@ void gfx_task(void const * argument)
                 gfx_set_device_label(usb_host_get_manuf_string(),
                                      usb_host_get_product_string(),
                                      usb_host_get_vidpid_string());
+                /* fall through */
+            case GFX_EVENT_MODE_CHANGED:
                 gfx_set_byte_offsets_text();
                 break;
 
@@ -505,4 +523,13 @@ void gfx_set_trigger_ready(bool state)
     } else {
         lv_obj_clear_state(trigger_ready_cb, LV_STATE_CHECKED);
     }
+}
+
+void gfx_send_event(gfx_event_t type, int32_t value)
+{
+    struct gfx_event *evt;
+    evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message
+    evt->type = type;
+    evt->value = value;
+    osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
 }

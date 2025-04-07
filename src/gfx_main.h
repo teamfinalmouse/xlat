@@ -29,6 +29,7 @@ typedef enum gfx_event_type {
     GFX_EVENT_MEASUREMENT,
     GFX_EVENT_HID_DEVICE_CONNECTED,
     GFX_EVENT_HID_DEVICE_DISCONNECTED,
+    GFX_EVENT_MODE_CHANGED,
 } gfx_event_t;
 
 struct gfx_event {
@@ -41,5 +42,6 @@ void gfx_task(void const * argument);
 void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid);
 void gfx_set_trigger_ready(bool state);
 void gfx_set_byte_offsets_text();
+void gfx_send_event(gfx_event_t type, int32_t value);
 
 #endif //XLAT_F7_FW_GFX_H

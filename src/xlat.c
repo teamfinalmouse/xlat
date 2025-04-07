@@ -60,7 +60,7 @@ static bool         auto_trigger_level_high = false;
 //                  \__/  \__/  \__/  \__/
 //
 // Therefore, take a large enough time window to debounce the GPIO interrupt.
-#define GPIO_IRQ_HOLDOFF_US (50 * 1000)  // 20ms;
+#define GPIO_IRQ_HOLDOFF_US (100 * 1000)  // 100ms;
 static uint32_t gpio_irq_holdoff_us = GPIO_IRQ_HOLDOFF_US;
 static TimerHandle_t xlat_timer_handle;
 
@@ -326,6 +326,9 @@ void xlat_process_usb_hid_event(void)
         }
 
         case HID_ITF_PROTOCOL_KEYBOARD:
+            if (xlat_mode != XLAT_MODE_KEY) {
+                goto out;
+            }
             hid_keyboard_report_t *kbd_report = (hid_keyboard_report_t *)hevt->report;
             // loop over the keycode array to see if any keys are pressed:
             for (uint8_t i = 0; i < 6; i++) {
@@ -559,11 +562,7 @@ void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size)
     printf("Using report ID: %d\n", report_id);
 
     // Send a message to the gfx thread, to refresh the device info
-    struct gfx_event *evt;
-    evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message
-    evt->type = GFX_EVENT_HID_DEVICE_CONNECTED;
-    evt->value = 0;
-    osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
+    gfx_send_event(GFX_EVENT_HID_DEVICE_CONNECTED, 0);
 }
 
 void xlat_clear_device_info(void)
@@ -571,11 +570,7 @@ void xlat_clear_device_info(void)
     // Clear offsets
     xlat_clear_locations();
     // Send a message to the gfx thread, to refresh the device info
-    struct gfx_event* evt;
-    evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message
-    evt->type = GFX_EVENT_HID_DEVICE_DISCONNECTED;
-    evt->value = 0;
-    osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
+    gfx_send_event(GFX_EVENT_HID_DEVICE_DISCONNECTED, 0);
 }
 
 uint16_t xlat_get_button_bits(void)
