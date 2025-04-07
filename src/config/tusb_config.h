@@ -31,6 +31,31 @@
 #endif
 
 //--------------------------------------------------------------------
+// Override Assert Handler
+//--------------------------------------------------------------------
+#include "stm32f7xx_hal.h"
+#include <stdio.h>
+
+#define CUSTOM_TU_ASSERT_DEFINE(_cond, _ret)                                 \
+  do {                                                                \
+    if ( !(_cond) ) { \
+        printf("ASSERT FAILED in %s at line %d\r\n", __func__, __LINE__); \
+        TU_BREAKPOINT(); /* break if in debugger */ \
+        HAL_Delay(1000); /* 1 second delay before reboot */ \
+        NVIC_SystemReset(); /* Reboot the system */ \
+    } \
+  } while(0)
+
+#define CUSTOM_TU_ASSERT_1ARGS(_cond)         CUSTOM_TU_ASSERT_DEFINE(_cond, false)
+#define CUSTOM_TU_ASSERT_2ARGS(_cond, _ret)   CUSTOM_TU_ASSERT_DEFINE(_cond, _ret)
+#define CUSTOM_TU_GET_3RD_ARG(arg1, arg2, arg3, ...)        arg3
+
+// Override the default TU_ASSERT macro to print the assert message and reboot
+#undef TU_ASSERT
+#define TU_ASSERT(...)   CUSTOM_TU_GET_3RD_ARG(__VA_ARGS__, CUSTOM_TU_ASSERT_2ARGS, CUSTOM_TU_ASSERT_1ARGS, _dummy)(__VA_ARGS__)
+
+
+//--------------------------------------------------------------------
 // Common Configuration
 //--------------------------------------------------------------------
 
