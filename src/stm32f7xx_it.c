@@ -136,8 +136,9 @@ void EXTI9_5_IRQHandler(void)
 
 void EXTI15_10_IRQHandler(void)
 {
-//    HAL_GPIO_EXTI_IRQHandler(ARDUINO_SDA_D14_Pin);
+    HAL_GPIO_WritePin(ARDUINO_D5_GPIO_Port, ARDUINO_D5_Pin, 1);
     HAL_GPIO_EXTI_IRQHandler(ARDUINO_D12_Pin);
+    HAL_GPIO_WritePin(ARDUINO_D5_GPIO_Port, ARDUINO_D5_Pin, 0);
 }
 
 /**
@@ -189,7 +190,7 @@ void LTDC_IRQHandler(void)
   * @brief Forward USB interrupt events to TinyUSB IRQ Handler
   */
 void OTG_FS_IRQHandler(void) {
-  tusb_int_handler(0, true);
+  //tusb_int_handler(0, true);
 }
 
 /**
@@ -198,5 +199,9 @@ void OTG_FS_IRQHandler(void) {
  * OTG_HS is marked as RHPort1 by TinyUSB to be consistent across stm32 port
  */
 void OTG_HS_IRQHandler(void) {
-  tusb_int_handler(1, true);
+    extern void hcd_int_handler(uint8_t rhport, bool in_isr);
+    HAL_GPIO_WritePin(ARDUINO_D3_GPIO_Port, ARDUINO_D3_Pin, GPIO_PIN_SET);
+    // tusb_int_handler(1, true);
+    hcd_int_handler(1, true);
+    HAL_GPIO_WritePin(ARDUINO_D3_GPIO_Port, ARDUINO_D3_Pin, GPIO_PIN_RESET);
 }

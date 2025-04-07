@@ -33,6 +33,8 @@
 // LUFA HID Parser
 #define __INCLUDE_FROM_USB_DRIVER // NOLINT(*-reserved-identifier)
 #define __INCLUDE_FROM_HID_DRIVER // NOLINT(*-reserved-identifier)
+#include <usb_task.h>
+
 #include "Drivers/USB/Class/Common/HIDParser.h"
 
 static uint32_t last_btn_gpio_timestamp = 0;
@@ -275,66 +277,73 @@ void xlat_process_usb_hid_event(void)
 
     struct hid_event *hevt = evt.value.p;
 
-    if (hevt->itf_protocol == HID_ITF_PROTOCOL_MOUSE) {
-        uint8_t *hid_raw_data = hevt->report;
+    switch (hevt->itf_protocol) {
+        case HID_ITF_PROTOCOL_MOUSE: {
+            uint8_t* hid_raw_data = hevt->report;
 
-        // XXX FIXME: same as below?
-        if ((report_id != 0) && (hid_raw_data[0] != report_id)) {
-            // ignore
-            goto out;
-        }
-
-        // check reportId for ULX
-        if (hid_using_reportid && (hid_raw_data[0] != 0x01)) { // fixme: should we check the reportId instead of hard coding?
-            // ignore
-            goto out;
-        }
-
+            // XXX FIXME: same as below?
+            if ((report_id != 0) && (hid_raw_data[0] != report_id)) {
+                // ignore
+                goto out;
+            }
+    
 #if 0
-        printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
-        for (int i = 0; i < 8 /*sizeof(hid_raw_data) */; i++) {
-            printf("%02x ", hid_raw_data[i]);
-        }
-        printf("\n");
+            printf("[%5lu] hid@%lu: ", xTaskGetTickCount(), hevt->timestamp);
+            for (int i = 0; i < 8 /*sizeof(hid_raw_data) */; i++) {
+                printf("%02x ", hid_raw_data[i]);
+            }
+            printf("\n");
 #endif
-        // FOR BUTTONS/CLICKS:
-        if (xlat_mode == XLAT_MODE_CLICK) {
-            // The correct location of button data is determined by parsing the HID descriptor
-            // This information is available in the button_mask
-            for (uint8_t i = (report_id ? 1 : 0); i < REPORT_LEN; i++) {
-                if (((hid_raw_data[i] ^ prev_report[i]) & hid_raw_data[i] & button_mask[i])) {
-                    last_usb_timestamp_us = hevt->timestamp;
-                    calculate_gpio_to_usb_time();
-                    printf("[%5lu] hid click @ %lu: ", xTaskGetTickCount(), hevt->timestamp);
-                    break;
+
+            // FOR BUTTONS/CLICKS:
+            if (xlat_mode == XLAT_MODE_CLICK) {
+                // The correct location of button data is determined by parsing the HID descriptor
+                // This information is available in the button_mask
+                for (uint8_t i = (report_id ? 1 : 0); i < REPORT_LEN; i++) {
+                    if (((hid_raw_data[i] ^ prev_report[i]) & hid_raw_data[i] & button_mask[i])) {
+                        last_usb_timestamp_us = hevt->timestamp;
+                        calculate_gpio_to_usb_time();
+                        printf("[%5lu] hid click @ %lu\n", xTaskGetTickCount(), hevt->timestamp);
+                        break;
+                    }
                 }
             }
-        }
-        // FOR MOTION:
-        else if (xlat_mode == XLAT_MODE_MOTION) {
-            // The correct location of button data is determined by parsing the HID descriptor
-            // This information is available in the motion_mask
-            for (uint8_t i = (report_id ? 1 : 0); i < REPORT_LEN; i++) {
-                if (hid_raw_data[i] & motion_mask[i]) {
-                    last_usb_timestamp_us = hevt->timestamp;
-                    calculate_gpio_to_usb_time();
-                    printf("[%5lu] hid motion @ %lu: ", xTaskGetTickCount(), hevt->timestamp);
-                    break;
+            // FOR MOTION:
+            else if (xlat_mode == XLAT_MODE_MOTION) {
+                // The correct location of button data is determined by parsing the HID descriptor
+                // This information is available in the motion_mask
+                for (uint8_t i = (report_id ? 1 : 0); i < REPORT_LEN; i++) {
+                    if (hid_raw_data[i] & motion_mask[i]) {
+                        last_usb_timestamp_us = hevt->timestamp;
+                        calculate_gpio_to_usb_time();
+                        printf("[%5lu] hid motion @ %lu\n", xTaskGetTickCount(), hevt->timestamp);
+                        break;
+                    }
                 }
             }
+            // Save the report for the next iteration
             memcpy(prev_report, hid_raw_data, sizeof(prev_report));
         }
-    }
 
-#if 0
-    if (USBH_HID_GetDeviceType(phost) == HID_KEYBOARD) {  // if the HID is Keyboard
-        uint8_t key;
-        HID_KEYBD_Info_TypeDef *Keyboard_Info;
-        Keyboard_Info = USBH_HID_GetKeybdInfo(phost);  // get the info
-        key = USBH_HID_GetASCIICode(Keyboard_Info);  // get the key pressed
-        printf("Key Pressed = %c\n", key);
+        case HID_ITF_PROTOCOL_KEYBOARD:
+            hid_keyboard_report_t *kbd_report = (hid_keyboard_report_t *)hevt->report;
+            // loop over the keycode array to see if any keys are pressed:
+            for (uint8_t i = 0; i < 6; i++) {
+                if (kbd_report->keycode[i]) {
+                    if (kbd_report->keycode[i] > 1) {
+                        // Save the captured USB event timestamp
+                        last_usb_timestamp_us = hevt->timestamp;
+                        printf("USB HID event: key press 0x%02X\n", kbd_report->keycode[i]);
+                        // calculate the time between the last key press and this key press:
+                        calculate_gpio_to_usb_time();
+                    }
+                }
+            }
+            break;
+
+        default:
+            break;
     }
-#endif
 
 out:
     // free event memory
@@ -378,8 +387,6 @@ void xlat_usb_event_callback(uint32_t timestamp, uint8_t const *report, size_t r
 {
     struct hid_event *evt;
 
-    HAL_GPIO_WritePin(ARDUINO_D5_GPIO_Port, ARDUINO_D5_Pin, 1);
-
     evt = osPoolAlloc(hidevt_pool); // Allocate memory for the message
     evt->timestamp = timestamp;
     evt->itf_protocol = itf_protocol;
@@ -389,8 +396,6 @@ void xlat_usb_event_callback(uint32_t timestamp, uint8_t const *report, size_t r
     evt->report_size = report_size;
     memcpy(evt->report, report, report_size);
     osMessagePut(msgQUsbHidEvent, (uint32_t)evt, 0U);
-
-    HAL_GPIO_WritePin(ARDUINO_D5_GPIO_Port, ARDUINO_D5_Pin, 0);
 }
 
 
