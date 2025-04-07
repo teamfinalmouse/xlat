@@ -532,8 +532,11 @@ void HAL_HCD_IRQHandler(HCD_HandleTypeDef *hhcd)
         (void)USB_FlushTxFifo(USBx, 0x10U);
         (void)USB_FlushRxFifo(USBx);
 
-        /* Restore FS Clock */
-        (void)USB_InitFSLSPClkSel(hhcd->Instance, HCFG_48_MHZ);
+        if (hhcd->Init.phy_itface == USB_OTG_EMBEDDED_PHY)
+        {
+          /* Restore FS Clock */
+          (void)USB_InitFSLSPClkSel(hhcd->Instance, HCFG_48_MHZ);
+        }
 
         /* Handle Host Port Disconnect Interrupt */
 #if (USE_HAL_HCD_REGISTER_CALLBACKS == 1U)
