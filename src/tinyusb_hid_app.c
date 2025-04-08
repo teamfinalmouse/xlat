@@ -49,7 +49,7 @@ void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const *desc_re
   printf("HID Interface Protocol = %s\n", protocol_str[itf_protocol]);
 
   // Parse the HID descriptor using xlat
-  xlat_parse_hid_descriptor((uint8_t*)desc_report, desc_len);
+  xlat_parse_hid_descriptor((uint8_t*)desc_report, desc_len, itf_protocol);
 
   // By default host stack will use activate boot protocol on supported interface.
   // Therefore for this simple example, we only need to parse generic report descriptor (with built-in parser)

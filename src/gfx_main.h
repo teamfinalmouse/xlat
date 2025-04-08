@@ -27,8 +27,8 @@
 
 typedef enum gfx_event_type {
     GFX_EVENT_MEASUREMENT,
-    GFX_EVENT_HID_DEVICE_CONNECTED,
-    GFX_EVENT_HID_DEVICE_DISCONNECTED,
+    GFX_EVENT_DEVICE_CONNECTED,
+    GFX_EVENT_DEVICE_DISCONNECTED,
     GFX_EVENT_MODE_CHANGED,
 } gfx_event_t;
 
@@ -41,8 +41,9 @@ void gfx_init(void);
 void gfx_task(void const * argument);
 void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid);
 void gfx_set_trigger_ready(bool state);
-void gfx_set_data_locations_label();
-void gfx_set_mode_label();
+void gfx_set_data_locations_label(void);
+void gfx_set_mode_label(void);
+void gfx_update_labels(void);
 void gfx_send_event(gfx_event_t type, int32_t value);
 void gfx_xlat_gui(void);
 

@@ -36,6 +36,8 @@
 #include "tusb.h"
 #include "tusb_config.h"
 
+#include "gfx_main.h"
+
 extern void hid_app_init(void);
 
 static void board_init(void) {
@@ -229,6 +231,10 @@ void tuh_mount_cb(uint8_t daddr) {
         printf("\t-> %04x:%04x %s: %s\n",
                desc_device.idVendor, desc_device.idProduct,
                manufacturer_string, product_string);
+
+
+        // Send a message to the gfx thread, to refresh the device info
+        gfx_send_event(GFX_EVENT_DEVICE_CONNECTED, 0);
     }
 }
 

@@ -104,7 +104,7 @@ uint16_t xlat_get_motion_bits(void) {
 
 xlat_mode_t xlat_get_mode(void) {
     printf("xlat_get_mode\n");
-    return XLAT_MODE_CLICK;
+    return XLAT_MODE_MOUSE_CLICK;
 }
 
 uint16_t xlat_get_report_id(void) {

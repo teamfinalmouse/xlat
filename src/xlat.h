@@ -40,9 +40,9 @@ typedef enum latency_type {
 
 
 typedef enum xlat_mode {
-    XLAT_MODE_CLICK = 0,
-    XLAT_MODE_MOTION,
-    XLAT_MODE_KEY,
+    XLAT_MODE_MOUSE_CLICK = 0,
+    XLAT_MODE_MOUSE_MOTION,
+    XLAT_MODE_KEYBOARD,
 } xlat_mode_t;
 
 extern volatile bool xlat_initialized;
@@ -73,7 +73,7 @@ uint32_t xlat_get_last_button_timestamp_us(void);
 void xlat_set_using_reportid(bool use_reportid);
 bool xlat_get_using_reportid(void);
 
-void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size); // on device connect
+void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size, uint8_t itf_protocol); // on device connect
 void xlat_clear_device_info(void); // on device disconnect
 
 void xlat_set_mode(enum xlat_mode mode);

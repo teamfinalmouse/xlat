@@ -95,15 +95,15 @@ static void event_handler(lv_event_t* e)
             uint16_t sel = lv_dropdown_get_selected(obj);
             if (sel == 0) {
                 // Click
-                xlat_set_mode(XLAT_MODE_CLICK);
+                xlat_set_mode(XLAT_MODE_MOUSE_CLICK);
                 gfx_send_event(GFX_EVENT_MODE_CHANGED, 0); // to refresh the UI
             } else if (sel == 1) {
                 // Motion
-                xlat_set_mode(XLAT_MODE_MOTION);
+                xlat_set_mode(XLAT_MODE_MOUSE_MOTION);
                 gfx_send_event(GFX_EVENT_MODE_CHANGED, 0); // to refresh the UI
             } else if (sel == 2) {
                 // Key
-                xlat_set_mode(XLAT_MODE_KEY);
+                xlat_set_mode(XLAT_MODE_KEYBOARD);
                 gfx_send_event(GFX_EVENT_MODE_CHANGED, 0); // to refresh the UI
             }
         }

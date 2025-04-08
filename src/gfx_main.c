@@ -91,7 +91,8 @@ void gfx_set_device_label(const char * manufacturer, const char * productname, c
 
     sprintf(tempstr, "USB ID: %s", vidpid);
     lv_label_set_text(vidpid_label, tempstr);
-    lv_obj_align_to(vidpid_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 26);
+    lv_obj_set_size(vidpid_label, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_align_to(vidpid_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 22);
 }
 
 static void btn_clear_event_cb(lv_event_t * e)
@@ -321,7 +322,7 @@ void gfx_set_data_locations_label(void)
     }
 
     lv_checkbox_set_text(hid_data_locations_label, text);
-    lv_obj_align_to(hid_data_locations_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
+    lv_obj_align_to(hid_data_locations_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 3);
 }
 
 void gfx_set_mode_label(void)
@@ -329,13 +330,13 @@ void gfx_set_mode_label(void)
     char text[100];
     const char *mode_str;
     switch (xlat_get_mode()) {
-        case XLAT_MODE_CLICK:
+        case XLAT_MODE_MOUSE_CLICK:
             mode_str = "CLICK";
             break;
-        case XLAT_MODE_MOTION:
+        case XLAT_MODE_MOUSE_MOTION:
             mode_str = "MOTION";
             break;
-        case XLAT_MODE_KEY:
+        case XLAT_MODE_KEYBOARD:
             mode_str = "KEY";
             break;
         default:
@@ -344,7 +345,16 @@ void gfx_set_mode_label(void)
 
     sprintf(text, "MODE: %s -", mode_str);
     lv_label_set_text(mode_label, text);
-    lv_obj_align_to(mode_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
+    lv_obj_align_to(mode_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 0);
+}
+
+void gfx_update_labels(void)
+{
+    gfx_set_device_label(usb_host_get_manuf_string(),
+                         usb_host_get_product_string(),
+                         usb_host_get_vidpid_string());
+    gfx_set_data_locations_label();
+    gfx_set_mode_label();
 }
 
 void gfx_xlat_gui(void)
@@ -358,7 +368,7 @@ void gfx_xlat_gui(void)
     // Draw logo
     lv_obj_t * logo = lv_img_create(lv_scr_act());
     lv_img_set_src(logo, &xlat_logo);
-    lv_obj_align(logo, LV_ALIGN_TOP_LEFT, 12, 5);
+    lv_obj_align(logo, LV_ALIGN_TOP_LEFT, 12, 3);
 
     ///////////////////////////
     // DEVICE INFO TOP RIGHT //
@@ -502,21 +512,18 @@ void gfx_task(void const * argument)
                 xlat_print_measurement();
                 break;
 
-            case GFX_EVENT_HID_DEVICE_CONNECTED:
-                gfx_set_device_label(usb_host_get_manuf_string(),
-                                     usb_host_get_product_string(),
-                                     usb_host_get_vidpid_string());
-                gfx_set_data_locations_label();
-                gfx_set_mode_label();
+            case GFX_EVENT_DEVICE_CONNECTED:
+                gfx_update_labels();
                 break;
 
             case GFX_EVENT_MODE_CHANGED:
                 gfx_set_mode_label();
                 break;
 
-            case GFX_EVENT_HID_DEVICE_DISCONNECTED:
-                gfx_set_device_label("", "No USB device found", "");
+            case GFX_EVENT_DEVICE_DISCONNECTED:
                 gfx_set_data_locations_label();
+                gfx_set_device_label("", "No USB device found", "");
+                gfx_set_mode_label();
                 break;
             }
 
