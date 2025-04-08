@@ -44,5 +44,6 @@ void gfx_set_trigger_ready(bool state);
 void gfx_set_data_locations_label();
 void gfx_set_mode_label();
 void gfx_send_event(gfx_event_t type, int32_t value);
+void gfx_xlat_gui(void);
 
 #endif //XLAT_F7_FW_GFX_H

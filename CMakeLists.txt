@@ -223,4 +223,16 @@ add_custom_target(${PROJECT_NAME}.bin ALL DEPENDS ${PROJECT_NAME})
 add_custom_command(TARGET ${PROJECT_NAME}.bin POST_BUILD
         COMMAND ${CMAKE_C_OBJCOPY} ARGS -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin)
 
+# Test target configuration
+add_custom_target(test
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/test
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/test ${CMAKE_COMMAND} ${CMAKE_SOURCE_DIR}/test
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/test
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Building and running tests"
+)
+
+# Add test target as a dependency to the main target
+# add_dependencies(${PROJECT_NAME} test)
+
 set_property(TARGET ${PROJECT_NAME} PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})

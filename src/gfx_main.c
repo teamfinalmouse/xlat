@@ -347,7 +347,7 @@ void gfx_set_mode_label(void)
     lv_obj_align_to(mode_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
 }
 
-static void gfx_xlat_gui(void)
+void gfx_xlat_gui(void)
 {
     // Rotate display
     lv_disp_set_rotation(lv_disp_get_default(), LV_DISP_ROT_180);
