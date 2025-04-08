@@ -488,18 +488,15 @@ enum xlat_mode xlat_get_mode(void)
 
 void xlat_auto_trigger_action(void)
 {
-    // random delay, such that we do not always perfectly align with USB timing
-    srand(xTaskGetTickCount());
-    int val = rand() & 0xFFF;
-    for (volatile int i = 0; i < val; i++) {
-        __NOP();
-    }
-    HAL_GPIO_WritePin(ARDUINO_D11_GPIO_Port, ARDUINO_D11_Pin, auto_trigger_level_high ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    uint32_t delay = rand() % 1000 + 100;
+    last_btn_gpio_timestamp = xlat_counter_1mhz_get() + delay;
+    htim2.Instance->CCR1 = last_btn_gpio_timestamp;
+    gpio_irq_producer++;
 }
 
 void xlat_auto_trigger_turn_off_action(void)
 {
-    HAL_GPIO_WritePin(ARDUINO_D11_GPIO_Port, ARDUINO_D11_Pin, auto_trigger_level_high ? GPIO_PIN_RESET : GPIO_PIN_SET);
+    htim2.Instance->CCR1 = xlat_counter_1mhz_get() + 100;
 }
 
 void xlat_auto_trigger_level_set(bool high)
