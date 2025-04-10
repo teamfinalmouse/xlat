@@ -21,8 +21,8 @@ set(CMAKE_ASM_SOURCE_FILE_EXTENSIONS s)
 
 # Define the application version
 set(APP_VERSION_MAJOR 1)
-set(APP_VERSION_MINOR 4)
-set(APP_VERSION_PATCH 0) # patch level 99 = work-in-progress for next release
+set(APP_VERSION_MINOR 5)
+set(APP_VERSION_PATCH 99) # patch level 99 = work-in-progress for next release
 set(APP_VERSION_STRING "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}")
 
 add_compile_options(
@@ -55,6 +55,7 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/libs/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1
         ${CMAKE_SOURCE_DIR}/libs/lufa
         ${CMAKE_SOURCE_DIR}/libs/lvgl
+        ${CMAKE_SOURCE_DIR}/libs/tinyusb/include
         ${CMAKE_SOURCE_DIR}/libs/RTT/RTT
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/src/config
@@ -133,17 +134,6 @@ set(LUFA_Sources
         libs/lufa/Drivers/USB/Class/Common/HIDParser.c
 )
 
-set(USB_Sources
-        src/usb/usbh_conf.c
-        src/usb/usb_host.c
-        src/usb/usbh_core.c
-        src/usb/usbh_ctlreq.c
-        src/usb/usbh_ioreq.c
-        src/usb/usbh_pipes.c
-        src/usb/usbh_hid.c
-        src/usb/usbh_hid_mouse.c
-)
-
 add_definitions(
         -DSTM32
         -DSTM32F7
@@ -157,6 +147,15 @@ add_definitions(
 )
 
 add_subdirectory(libs/lvgl)
+add_subdirectory(libs/tinyusb/src)
+
+set(TINYUSB_Sources
+        src/usb_task.c
+        src/tinyusb_hid_app.c
+        libs/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c
+        libs/tinyusb/src/portable/synopsys/dwc2/hcd_dwc2.c
+        libs/tinyusb/src/portable/synopsys/dwc2/dwc2_common.c
+)
 
 target_compile_options(lvgl PRIVATE -DSTM32F7)
 
@@ -183,8 +182,10 @@ add_executable(${PROJECT_NAME}
         ${LUFA_Sources}
         ${FREERTOS_Sources}
         ${RTT_Sources}
-        ${USB_Sources}
+        ${TINYUSB_Sources}
         )
+
+tinyusb_target_add(${PROJECT_NAME})
 
 # Get the GIT SHA
 execute_process(
@@ -219,7 +220,19 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
         )
 
 add_custom_target(${PROJECT_NAME}.bin ALL DEPENDS ${PROJECT_NAME})
-add_custom_command(TARGET ${PROJECT_NAME}.bin
+add_custom_command(TARGET ${PROJECT_NAME}.bin POST_BUILD
         COMMAND ${CMAKE_C_OBJCOPY} ARGS -O binary ${PROJECT_NAME}.elf ${PROJECT_NAME}.bin)
+
+# Test target configuration
+add_custom_target(test
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/test
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/test ${CMAKE_COMMAND} ${CMAKE_SOURCE_DIR}/test
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/test
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Building and running tests"
+)
+
+# Add test target as a dependency to the main target
+# add_dependencies(${PROJECT_NAME} test)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/${LINKER_SCRIPT})

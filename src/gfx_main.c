@@ -15,15 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "gfx_main.h"
 
+#include <main.h>
+#include <usb_task.h>
+
+#include "cmsis_os.h"
 #include "lvgl/lvgl.h"
 #include "touchpad/touchpad.h"
 #include "tft/tft.h"
 #include "xlat.h"
 #include "gfx_settings.h"
-#include "stdio_glue.h"
-#include "usb_host.h"
 
 #define Y_CHART_SIZE_X 410
 #define Y_CHART_SIZE_Y 130
@@ -42,7 +47,8 @@ static lv_obj_t * latency_label;
 static lv_obj_t * productname_label;
 static lv_obj_t * manufacturer_label;
 static lv_obj_t * vidpid_label;
-static lv_obj_t * hid_offsets_label;
+static lv_obj_t * hid_data_locations_label;
+static lv_obj_t * mode_label;
 static lv_obj_t * trigger_label;
 static lv_obj_t * trigger_ready_cb;
 
@@ -69,13 +75,32 @@ static void latency_label_update(void)
 
 void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid)
 {
-    lv_label_set_text(vidpid_label, vidpid);
-    lv_label_set_text(manufacturer_label, manufacturer);
-    lv_label_set_text(productname_label, productname);
+    char tempstr[21];
 
-    lv_obj_align(manufacturer_label, LV_ALIGN_TOP_RIGHT, -5, 5);
-    lv_obj_align_to(vidpid_label, manufacturer_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
-    lv_obj_align_to(productname_label, manufacturer_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
+    // Truncate product name to 20 characters
+    strncpy(tempstr, productname, 20);
+    tempstr[20] = '\0';
+    lv_label_set_text(productname_label, tempstr);
+    lv_obj_align(productname_label, LV_ALIGN_TOP_RIGHT, -5, 5);
+
+    // Truncate manufacturer name to 20 characters
+    strncpy(tempstr, manufacturer, 20);
+    tempstr[20] = '\0';
+    lv_label_set_text(manufacturer_label, tempstr);
+    lv_obj_align_to(manufacturer_label, productname_label, LV_ALIGN_OUT_LEFT_BOTTOM, -5, 0);
+
+    sprintf(tempstr, "USB ID: %s", vidpid);
+    lv_label_set_text(vidpid_label, tempstr);
+    lv_obj_set_size(vidpid_label, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_align_to(vidpid_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 22);
+}
+
+static void clear_latency_measurements(void)
+{
+    // reset latency numbers
+    xlat_reset_latency();
+    chart_reset();
+    latency_label_update();
 }
 
 static void btn_clear_event_cb(lv_event_t * e)
@@ -84,9 +109,7 @@ static void btn_clear_event_cb(lv_event_t * e)
 
     if (code == LV_EVENT_CLICKED) {
         // reset latency numbers
-        xlat_reset_latency();
-        chart_reset();
-        latency_label_update();
+        clear_latency_measurements();
     }
 }
 
@@ -258,15 +281,6 @@ static void new_theme_apply_cb(lv_theme_t * th, lv_obj_t * obj)
 #if LV_USE_CHART
     else if(lv_obj_check_type(obj, &lv_chart_class)) {
         lv_obj_add_style(obj, &style_chart, 0);
-//        lv_obj_add_style(obj, &styles->card, 0);
-//        lv_obj_add_style(obj, &styles->pad_small, 0);
-//        lv_obj_add_style(obj, &styles->chart_bg, 0);
-//        lv_obj_add_style(obj, &styles->scrollbar, LV_PART_SCROLLBAR);
-//        lv_obj_add_style(obj, &styles->scrollbar_scrolled, LV_PART_SCROLLBAR | LV_STATE_SCROLLED);
-//        lv_obj_add_style(obj, &styles->chart_series, LV_PART_ITEMS);
-//        lv_obj_add_style(obj, &styles->chart_indic, LV_PART_INDICATOR);
-//        lv_obj_add_style(obj, &styles->chart_ticks, LV_PART_TICKS);
-//        lv_obj_add_style(obj, &styles->chart_series, LV_PART_CURSOR);
     }
 #endif
 }
@@ -300,7 +314,7 @@ static void new_theme_init_and_set(void)
     lv_disp_set_theme(NULL, &th_new);
 }
 
-void gfx_set_byte_offsets_text(void)
+void gfx_set_data_locations_label(void)
 {
     char text[100];
     uint16_t button_bits = xlat_get_button_bits();
@@ -309,14 +323,47 @@ void gfx_set_byte_offsets_text(void)
     if (button_bits || motion_bits) {
         sprintf(text, "Data (%u): %u button, %u motion bits", xlat_get_report_id(), button_bits, motion_bits);
     } else {
+        // offsets not found
         sprintf(text, "Data: locations not found");
     }
 
-    lv_checkbox_set_text(hid_offsets_label, text);
-    lv_obj_align_to(hid_offsets_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 5);
+    lv_checkbox_set_text(hid_data_locations_label, text);
+    lv_obj_align_to(hid_data_locations_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 3);
 }
 
-static void gfx_xlat_gui(void)
+void gfx_set_mode_label(void)
+{
+    char text[100];
+    const char *mode_str;
+    switch (xlat_get_mode()) {
+        case XLAT_MODE_MOUSE_CLICK:
+            mode_str = "CLICK";
+            break;
+        case XLAT_MODE_MOUSE_MOTION:
+            mode_str = "MOTION";
+            break;
+        case XLAT_MODE_KEYBOARD:
+            mode_str = "KEY";
+            break;
+        default:
+            mode_str = "Unknown";
+    }
+
+    sprintf(text, "MODE: %s -", mode_str);
+    lv_label_set_text(mode_label, text);
+    lv_obj_align_to(mode_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 0);
+}
+
+void gfx_update_labels(void)
+{
+    gfx_set_device_label(usb_host_get_manuf_string(),
+                         usb_host_get_product_string(),
+                         usb_host_get_vidpid_string());
+    gfx_set_data_locations_label();
+    gfx_set_mode_label();
+}
+
+void gfx_xlat_gui(void)
 {
     // Rotate display
     lv_disp_set_rotation(lv_disp_get_default(), LV_DISP_ROT_180);
@@ -327,7 +374,7 @@ static void gfx_xlat_gui(void)
     // Draw logo
     lv_obj_t * logo = lv_img_create(lv_scr_act());
     lv_img_set_src(logo, &xlat_logo);
-    lv_obj_align(logo, LV_ALIGN_TOP_LEFT, 12, 5);
+    lv_obj_align(logo, LV_ALIGN_TOP_LEFT, 12, 3);
 
     ///////////////////////////
     // DEVICE INFO TOP RIGHT //
@@ -337,19 +384,15 @@ static void gfx_xlat_gui(void)
     vidpid_label = lv_label_create(lv_scr_act());
     productname_label = lv_label_create(lv_scr_act());
     manufacturer_label = lv_label_create(lv_scr_act());
-    gfx_set_device_label("", "No USB device connected", "");
+    gfx_set_device_label("", "No USB device found", "");
 
+    // HID data locations label
+    hid_data_locations_label = lv_label_create(lv_scr_act());
+    gfx_set_data_locations_label();
 
-    // Trigger ready label
-    trigger_ready_cb = lv_checkbox_create(lv_scr_act());
-    lv_checkbox_set_text(trigger_ready_cb, "READY");
-    lv_obj_add_state(trigger_ready_cb, LV_STATE_CHECKED);
-    lv_obj_set_style_bg_color(trigger_ready_cb, lv_palette_main(LV_PALETTE_RED), 0);
-    lv_obj_align(trigger_ready_cb, LV_ALIGN_BOTTOM_RIGHT, -10, -7);
-
-    // HID byte offsets label
-    hid_offsets_label = lv_label_create(lv_scr_act());
-    gfx_set_byte_offsets_text();
+    // Mode label
+    mode_label = lv_label_create(lv_scr_act());
+    gfx_set_mode_label();
 
     ///////////////////////////
     // BUTTONS AT THE BOTTOM //
@@ -359,7 +402,7 @@ static void gfx_xlat_gui(void)
     lv_obj_t * clear_btn = lv_btn_create(lv_scr_act());
     lv_obj_align(clear_btn, LV_ALIGN_BOTTOM_LEFT, 10, -5);
     lv_obj_set_size(clear_btn, GFX_BTN_WIDTH, GFX_BTN_HEIGHT);
-    lv_obj_add_event_cb(clear_btn, btn_clear_event_cb, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(clear_btn, btn_clear_event_cb, LV_EVENT_CLICKED, NULL);
 
     // Reset button label
     lv_obj_t * reset_label = lv_label_create(clear_btn);
@@ -370,7 +413,7 @@ static void gfx_xlat_gui(void)
     lv_obj_t * reboot_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(reboot_btn, clear_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
     lv_obj_set_size(reboot_btn, GFX_BTN_WIDTH, GFX_BTN_HEIGHT);
-    lv_obj_add_event_cb(reboot_btn, btn_reboot_event_cb, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(reboot_btn, btn_reboot_event_cb, LV_EVENT_CLICKED, NULL);
 
     // Reboot button label
     lv_obj_t * reboot_label = lv_label_create(reboot_btn);
@@ -381,7 +424,7 @@ static void gfx_xlat_gui(void)
     lv_obj_t * settings_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(settings_btn, reboot_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
     lv_obj_set_size(settings_btn, GFX_BTN_WIDTH, GFX_BTN_HEIGHT);
-    lv_obj_add_event_cb(settings_btn, btn_settings_event_cb, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(settings_btn, btn_settings_event_cb, LV_EVENT_CLICKED, NULL);
 
     // Settings button label
     lv_obj_t * settings_label = lv_label_create(settings_btn);
@@ -392,7 +435,7 @@ static void gfx_xlat_gui(void)
     lv_obj_t * trigger_btn = lv_btn_create(lv_scr_act());
     lv_obj_align_to(trigger_btn, settings_btn, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
     lv_obj_set_size(trigger_btn, GFX_BTN_WIDTH, GFX_BTN_HEIGHT);
-    lv_obj_add_event_cb(trigger_btn, btn_trigger_event_cb, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(trigger_btn, btn_trigger_event_cb, LV_EVENT_CLICKED, NULL);
 
     // Trigger button label
     trigger_label = lv_label_create(trigger_btn);
@@ -404,11 +447,20 @@ static void gfx_xlat_gui(void)
     lv_label_set_text(latency_label, "Click to start measurement...");
     lv_obj_align_to(latency_label, chart, LV_ALIGN_OUT_TOP_MID, 0, 0);
 
+    // Trigger ready label
+    trigger_ready_cb = lv_checkbox_create(lv_scr_act());
+    lv_checkbox_set_text(trigger_ready_cb, "READY");
+    lv_obj_add_state(trigger_ready_cb, LV_STATE_CHECKED);
+    lv_obj_set_style_bg_color(trigger_ready_cb, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_obj_align(trigger_ready_cb, LV_ALIGN_BOTTOM_RIGHT, -10, -7);
+
+
     ///////////
     // CHART //
     ///////////
     lv_chart_new(Y_CHART_RANGE);
     lv_chart_add_cursor(chart, lv_color_white(), LV_DIR_TOP);
+    clear_latency_measurements();
 }
 
 
@@ -425,21 +477,31 @@ void gfx_init(void)
 }
 
 
-void gfx_task(void)
+void gfx_task(void const * argument)
 {
-    xSemaphoreTake(lvgl_mutex, portMAX_DELAY);
-    lv_task_handler();
-    xSemaphoreGive(lvgl_mutex);
+    (void)argument;
 
-    if (osMessageWaiting(msgQGfxTask)) {
-        // pop the message
-        osEvent evt = osMessageGet(msgQGfxTask, 0);
-        if (evt.status != osEventMessage) {
-            return;
-        }
+    while (!xlat_initialized) {
+        osDelay(1);
+    }
 
-        struct gfx_event *g_evt = evt.value.p;
-        switch (g_evt->type) {
+    while (1) {
+        xSemaphoreTake(lvgl_mutex, portMAX_DELAY);
+        lv_task_handler();
+        xSemaphoreGive(lvgl_mutex);
+
+        if (osMessageWaiting(msgQGfxTask))
+        {
+            // pop the message
+            osEvent evt = osMessageGet(msgQGfxTask, 0);
+            if (evt.status != osEventMessage)
+            {
+                return;
+            }
+
+            struct gfx_event* g_evt = evt.value.p;
+            switch (g_evt->type)
+            {
             case GFX_EVENT_MEASUREMENT:
                 // New measurement received
 
@@ -457,21 +519,28 @@ void gfx_task(void)
                 xlat_print_measurement();
                 break;
 
-            case GFX_EVENT_HID_DEVICE_CONNECTED:
-                gfx_set_device_label(usb_host_get_manuf_string(),
-                                     usb_host_get_product_string(),
-                                     usb_host_get_vidpid_string());
-                gfx_set_byte_offsets_text();
+            case GFX_EVENT_DEVICE_CONNECTED:
+                gfx_update_labels();
                 break;
 
-            case GFX_EVENT_HID_DEVICE_DISCONNECTED:
-                gfx_set_device_label("", "No USB device connected", "");
-                gfx_set_byte_offsets_text();
+            case GFX_EVENT_MODE_CHANGED:
+                gfx_set_mode_label();
                 break;
+
+            case GFX_EVENT_DEVICE_DISCONNECTED:
+                auto_trigger_clear_timer(); // stop auto-trigger in case it's running
+                gfx_set_data_locations_label();
+                gfx_set_device_label("", "No USB device found", "");
+                gfx_set_mode_label();
+                clear_latency_measurements();
+                break;
+            }
+
+            // free event memory
+            osPoolFree(gfxevt_pool, g_evt);
         }
 
-        // free event memory
-        osPoolFree(gfxevt_pool, g_evt);
+        osDelay(1);
     }
 }
 
@@ -487,4 +556,13 @@ void gfx_set_trigger_ready(bool state)
     } else {
         lv_obj_clear_state(trigger_ready_cb, LV_STATE_CHECKED);
     }
+}
+
+void gfx_send_event(gfx_event_t type, int32_t value)
+{
+    struct gfx_event *evt;
+    evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message
+    evt->type = type;
+    evt->value = value;
+    osMessagePut(msgQGfxTask, (uint32_t)evt, 0U);
 }

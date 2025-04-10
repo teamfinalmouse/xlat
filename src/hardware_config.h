@@ -18,6 +18,8 @@
 #ifndef HARDWARE_CONFIG_H
 #define HARDWARE_CONFIG_H
 
+#include <stdbool.h>
+
 #define XLAT_TIMx                           TIM2
 #define XLAT_TIMx_CLK_ENABLE()              __HAL_RCC_TIM2_CLK_ENABLE()
 #define XLAT_TIMx_handle                   htim2

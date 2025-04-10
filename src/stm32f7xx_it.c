@@ -18,6 +18,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f7xx_it.h"
+#include "xlat.h"
+
+#include <tusb.h>
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -134,8 +137,9 @@ void EXTI9_5_IRQHandler(void)
 
 void EXTI15_10_IRQHandler(void)
 {
-//    HAL_GPIO_EXTI_IRQHandler(ARDUINO_SDA_D14_Pin);
+    HAL_GPIO_WritePin(ARDUINO_D5_GPIO_Port, ARDUINO_D5_Pin, 1);
     HAL_GPIO_EXTI_IRQHandler(ARDUINO_D12_Pin);
+    HAL_GPIO_WritePin(ARDUINO_D5_GPIO_Port, ARDUINO_D5_Pin, 0);
 }
 
 /**
@@ -176,14 +180,6 @@ void TIM6_DAC_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles USB On The Go HS global interrupt.
-  */
-void OTG_HS_IRQHandler(void)
-{
-    HAL_HCD_IRQHandler(&hhcd_USB_OTG_HS);
-}
-
-/**
   * @brief This function handles LTDC global interrupt.
   */
 void LTDC_IRQHandler(void)
@@ -191,3 +187,23 @@ void LTDC_IRQHandler(void)
     HAL_LTDC_IRQHandler(&hltdc);
 }
 
+/**
+  * @brief Forward USB interrupt events to TinyUSB IRQ Handler
+  */
+void OTG_FS_IRQHandler(void) {
+  //tusb_int_handler(0, true);
+}
+
+/**
+ * @brief Forward USB interrupt events to TinyUSB IRQ Handler
+ * Despite being called USB2_OTG
+ * OTG_HS is marked as RHPort1 by TinyUSB to be consistent across stm32 port
+ */
+void OTG_HS_IRQHandler(void) {
+    HAL_GPIO_WritePin(ARDUINO_D3_GPIO_Port, ARDUINO_D3_Pin, GPIO_PIN_SET);
+
+    usb_hid_rx_timestamp = xlat_counter_1mhz_get(); // not as early as was done in the STM32 USB Host library...
+    tusb_int_handler(1, true);
+
+    HAL_GPIO_WritePin(ARDUINO_D3_GPIO_Port, ARDUINO_D3_Pin, GPIO_PIN_RESET);
+}
