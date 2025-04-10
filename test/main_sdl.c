@@ -79,11 +79,11 @@ int main()
 
 // stubs
 const char* usb_host_get_manuf_string(void) {
-    return "manufacturer name very long string";
+    return "Manufacturer Name";
 }
 
 const char* usb_host_get_product_string(void) {
-    return "product name very long string";
+    return "Product Name";
 }
 
 const char* usb_host_get_serial_string(void) {

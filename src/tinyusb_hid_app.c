@@ -72,19 +72,20 @@ void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance) {
   xlat_clear_device_info();
 }
 
+
 // Invoked when received report from device via interrupt endpoint
 void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const *report, uint16_t len) {
-
   HAL_GPIO_WritePin(ARDUINO_D4_GPIO_Port, ARDUINO_D4_Pin, GPIO_PIN_SET);
 
-  uint32_t timestamp = xlat_counter_1mhz_get(); // not as early as was done in the STM32 USB Host library...
   uint8_t const itf_protocol = tuh_hid_interface_protocol(dev_addr, instance);
-  xlat_usb_event_callback(timestamp, report, len, itf_protocol); // Call to XLAT module
 
-  HAL_GPIO_WritePin(ARDUINO_D4_GPIO_Port, ARDUINO_D4_Pin, GPIO_PIN_RESET);
+  // usb_hid_rx_timestamp is set in the OTG_HS_IRQHandler (earliest possible)
+  xlat_usb_event_callback(usb_hid_rx_timestamp, report, len, itf_protocol); // Call to XLAT module
 
-  // continue to request to receive report
+  // continue to request to receive report (new IN token on interrupt endpoint)
   if (!tuh_hid_receive_report(dev_addr, instance)) {
     printf("Error: cannot request to receive report\n");
   }
+
+  HAL_GPIO_WritePin(ARDUINO_D4_GPIO_Port, ARDUINO_D4_Pin, GPIO_PIN_RESET);
 }

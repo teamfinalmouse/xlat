@@ -37,6 +37,8 @@
 
 #include "Drivers/USB/Class/Common/HIDParser.h"
 
+volatile uint32_t usb_hid_rx_timestamp; // set in OTG_HS_IRQHandler
+
 static uint32_t last_btn_gpio_timestamp = 0;
 static uint32_t last_usb_timestamp_us = 0;
 static uint32_t last_latency_us[LATENCY_TYPE_MAX];

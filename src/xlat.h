@@ -46,6 +46,7 @@ typedef enum xlat_mode {
 } xlat_mode_t;
 
 extern volatile bool xlat_initialized;
+extern volatile uint32_t usb_hid_rx_timestamp; // set in OTG_HS_IRQHandler
 
 void xlat_init(void);
 void xlat_task(void const * argument);

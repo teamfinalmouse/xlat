@@ -18,6 +18,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f7xx_it.h"
+#include "xlat.h"
 
 #include <tusb.h>
 
@@ -199,9 +200,10 @@ void OTG_FS_IRQHandler(void) {
  * OTG_HS is marked as RHPort1 by TinyUSB to be consistent across stm32 port
  */
 void OTG_HS_IRQHandler(void) {
-    extern void hcd_int_handler(uint8_t rhport, bool in_isr);
     HAL_GPIO_WritePin(ARDUINO_D3_GPIO_Port, ARDUINO_D3_Pin, GPIO_PIN_SET);
-    // tusb_int_handler(1, true);
-    hcd_int_handler(1, true);
+
+    usb_hid_rx_timestamp = xlat_counter_1mhz_get(); // not as early as was done in the STM32 USB Host library...
+    tusb_int_handler(1, true);
+
     HAL_GPIO_WritePin(ARDUINO_D3_GPIO_Port, ARDUINO_D3_Pin, GPIO_PIN_RESET);
 }
