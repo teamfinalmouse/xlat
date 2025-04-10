@@ -610,6 +610,14 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(ARDUINO_D3_GPIO_Port, &GPIO_InitStruct);
 
+    /*Configure GPIO pins : ARDUINO_D2_Pin */
+    GPIO_InitStruct.Pin = ARDUINO_D2_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(ARDUINO_D2_GPIO_Port, &GPIO_InitStruct);
+
+
     /*Configure GPIO pin : ARDUINO_D11_Pin */
     GPIO_InitStruct.Pin = ARDUINO_D11_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD; // Open drain output, can only pull low
