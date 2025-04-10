@@ -95,15 +95,21 @@ void gfx_set_device_label(const char * manufacturer, const char * productname, c
     lv_obj_align_to(vidpid_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 22);
 }
 
+static void clear_latency_measurements(void)
+{
+    // reset latency numbers
+    xlat_reset_latency();
+    chart_reset();
+    latency_label_update();
+}
+
 static void btn_clear_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
 
     if (code == LV_EVENT_CLICKED) {
         // reset latency numbers
-        xlat_reset_latency();
-        chart_reset();
-        latency_label_update();
+        clear_latency_measurements();
     }
 }
 
@@ -454,6 +460,7 @@ void gfx_xlat_gui(void)
     ///////////
     lv_chart_new(Y_CHART_RANGE);
     lv_chart_add_cursor(chart, lv_color_white(), LV_DIR_TOP);
+    clear_latency_measurements();
 }
 
 
@@ -521,9 +528,11 @@ void gfx_task(void const * argument)
                 break;
 
             case GFX_EVENT_DEVICE_DISCONNECTED:
+                auto_trigger_clear_timer(); // stop auto-trigger in case it's running
                 gfx_set_data_locations_label();
                 gfx_set_device_label("", "No USB device found", "");
                 gfx_set_mode_label();
+                clear_latency_measurements();
                 break;
             }
 
