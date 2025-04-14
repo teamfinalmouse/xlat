@@ -138,8 +138,10 @@ static void auto_trigger_clear_timer(void)
     lv_obj_center(trigger_label);
 
     // Stop the timer
-    lv_timer_del(trigger_timer);
-    trigger_timer = NULL;
+    if (trigger_timer) {
+        lv_timer_del(trigger_timer);
+        trigger_timer = NULL;
+    }
 }
 
 void auto_trigger_turn_off_callback(lv_timer_t * timer)

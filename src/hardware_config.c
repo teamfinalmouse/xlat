@@ -44,6 +44,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART6_UART_Init(void);
 
 static bool rising_edge = false;
+static input_bias_t input_bias = INPUT_BIAS_NOPULL;
 
 /**
   * @brief  The application entry point.
@@ -627,7 +628,7 @@ static void MX_GPIO_Init(void)
     HAL_GPIO_WritePin(ARDUINO_D11_GPIO_Port, ARDUINO_D11_Pin, GPIO_PIN_SET); // Set high, not draining or pulling low
 
     /* Detect MOUSE BUTTON -> Interrupt */
-    hw_config_input_trigger(rising_edge);
+    hw_config_input_trigger(rising_edge, input_bias);
 
     /*Configure GPIO pin : PB2 */
     GPIO_InitStruct.Pin = GPIO_PIN_2;
@@ -672,20 +673,37 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 
-void hw_config_input_trigger(bool rising)
+void hw_config_input_trigger(bool rising, input_bias_t bias)
 {
     rising_edge = rising;
+    input_bias = bias;
     uint32_t mode = rising_edge ? GPIO_MODE_IT_RISING : GPIO_MODE_IT_FALLING;
 
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     GPIO_InitStruct.Pin = ARDUINO_D12_Pin;
     GPIO_InitStruct.Mode = mode; // GPIO threshold direction
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = bias;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(ARDUINO_D12_GPIO_Port, &GPIO_InitStruct);
+}
+
+void hw_config_input_bias(input_bias_t bias)
+{
+    // Reconfigure the input trigger with the new bias setting
+    hw_config_input_trigger(rising_edge, bias);
+}
+
+input_bias_t hw_config_input_bias_get(void)
+{
+    return input_bias;
 }
 
 bool hw_config_input_trigger_is_rising_edge(void)
 {
     return rising_edge;
+}
+
+void hw_config_input_trigger_set_edge(bool rising)
+{
+    hw_config_input_trigger(rising, input_bias);
 }

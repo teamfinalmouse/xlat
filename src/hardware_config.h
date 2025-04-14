@@ -24,11 +24,20 @@
 #define XLAT_TIMx_CLK_ENABLE()              __HAL_RCC_TIM2_CLK_ENABLE()
 #define XLAT_TIMx_handle                   htim2
 
+typedef enum input_bias {
+    INPUT_BIAS_NOPULL = 0x00,   //GPIO_NOPULL
+    INPUT_BIAS_PULLUP = 0x01,   //GPIO_PULLUP 
+    INPUT_BIAS_PULLDOWN = 0x02  //GPIO_PULLDOWN
+} input_bias_t;
+
 int hw_init(void);
 void hw_debug_init(void);
 void hw_exti_interrupts_enable(void);
 void hw_exti_interrupts_disable(void);
-void hw_config_input_trigger(bool rising);
+void hw_config_input_trigger(bool rising, input_bias_t bias);
 bool hw_config_input_trigger_is_rising_edge(void);
+void hw_config_input_trigger_set_edge(bool rising);
+void hw_config_input_bias(input_bias_t bias);
+input_bias_t hw_config_input_bias_get(void);
 
 #endif //HARDWARE_CONFIG_H
