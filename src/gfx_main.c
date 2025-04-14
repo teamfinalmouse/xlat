@@ -28,6 +28,7 @@
 #include "touchpad/touchpad.h"
 #include "tft/tft.h"
 #include "xlat.h"
+#include "xlat_config.h"
 #include "gfx_settings.h"
 
 #define Y_CHART_SIZE_X 410
@@ -319,11 +320,14 @@ static void new_theme_init_and_set(void)
 void gfx_set_data_locations_label(void)
 {
     char text[100];
-    uint16_t button_bits = xlat_get_button_bits();
-    uint16_t motion_bits = xlat_get_motion_bits();
+    uint16_t * button_bits = xlat_get_button_bits();
+    uint16_t * motion_bits = xlat_get_motion_bits();
+    bool keyboard_usage_page_found = xlat_get_keyboard_usage_page_found();
 
-    if (button_bits || motion_bits) {
-        sprintf(text, "Data (%u): %u button, %u motion bits", xlat_get_report_id(), button_bits, motion_bits);
+    if (*button_bits || *motion_bits) {
+        sprintf(text, "Data (%u): %u button, %u motion bits", xlat_get_report_id(), *button_bits, *motion_bits);
+    } else if (keyboard_usage_page_found) {
+        sprintf(text, "Data (%u): keyboard found", xlat_get_report_id());
     } else {
         // offsets not found
         sprintf(text, "Data: locations not found");

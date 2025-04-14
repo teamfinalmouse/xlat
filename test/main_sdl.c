@@ -64,6 +64,8 @@ int main()
     gfx_set_data_locations_label();
     gfx_set_mode_label();
 
+    xlat_initialized = true;
+
     Uint32 lastTick = SDL_GetTicks();
     while(1) {
         SDL_Delay(5);
@@ -71,7 +73,8 @@ int main()
         Uint32 current = SDL_GetTicks();
         lv_tick_inc(current - lastTick);
         lastTick = current;
-        lv_timer_handler();
+
+        gfx_task(NULL);
     }
 
     return 0;

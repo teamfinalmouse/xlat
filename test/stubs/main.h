@@ -62,10 +62,6 @@ void gfx_settings_create_page(lv_obj_t *previous_screen);
 void xlat_auto_trigger_turn_off_action(void);
 void xlat_auto_trigger_action(void);
 uint32_t xlat_counter_1mhz_get(void);
-uint16_t xlat_get_button_bits(void);
-uint16_t xlat_get_motion_bits(void);
-xlat_mode_t xlat_get_mode(void);
-uint16_t xlat_get_report_id(void);
 void xlat_print_measurement(void);
 
 // USB stubs

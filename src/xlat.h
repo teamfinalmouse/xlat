@@ -22,8 +22,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define AUTO_TRIGGER_PERIOD_MS (150)
+#define AUTO_TRIGGER_PERIOD_MS (300)
 #define AUTO_TRIGGER_PRESSED_PERIOD_MS (30)
+#define REPORT_LEN 64
 
 typedef struct hid_event {
     uint32_t timestamp;
@@ -76,18 +77,9 @@ bool xlat_get_using_reportid(void);
 
 void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size, uint8_t itf_protocol); // on device connect
 void xlat_clear_device_info(void); // on device disconnect
-
-void xlat_set_mode(enum xlat_mode mode);
-enum xlat_mode xlat_get_mode(void);
-
-uint16_t xlat_get_button_bits(void);
-uint16_t xlat_get_motion_bits(void);
-uint16_t xlat_get_report_id(void);
 void xlat_clear_locations(void);
 
 void xlat_auto_trigger_action(void);
 void xlat_auto_trigger_turn_off_action(void);
-void xlat_auto_trigger_level_set(bool high);
-bool xlat_auto_trigger_level_is_high(void);
 
 #endif //XLAT_H

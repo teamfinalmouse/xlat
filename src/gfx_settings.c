@@ -20,6 +20,7 @@
 #include "gfx_main.h"
 #include "lvgl/lvgl.h"
 #include "xlat.h"
+#include "xlat_config.h"
 #include "hardware_config.h"
 
 // UI layout constants
@@ -35,6 +36,7 @@ lv_obj_t *debounce_dropdown;
 lv_obj_t *trigger_dropdown;
 lv_obj_t *mode_dropdown;
 lv_obj_t *trigger_output_dropdown;
+lv_obj_t *trigger_interval_dropdown;
 
 // Event handler for the back button
 static void back_btn_event_handler(lv_event_t* e)
@@ -94,6 +96,14 @@ static void event_handler(lv_event_t* e)
                 xlat_set_mode(XLAT_MODE_KEYBOARD);
                 gfx_send_event(GFX_EVENT_MODE_CHANGED, 0);
             }
+        } else if (obj == trigger_interval_dropdown) {
+            uint16_t sel = lv_dropdown_get_selected(obj);
+            uint32_t interval = (sel + 1) * 100; // Convert selection to milliseconds (100-1000ms)
+            xlat_auto_trigger_interval_set(interval);
+        } else if (obj == trigger_output_dropdown) {
+            uint16_t sel = lv_dropdown_get_selected(obj);
+            uint8_t pin = (sel == 0) ? 6 : 11; // D6 or D11
+            xlat_auto_trigger_output_set(pin);
         }
     }
 }
@@ -129,7 +139,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_set_width(mode_label, LABEL_WIDTH);
     lv_obj_align_to(mode_label, mode_info, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
-    lv_obj_t *mode_dropdown = lv_dropdown_create(tab_mode);
+    mode_dropdown = lv_dropdown_create(tab_mode);
     lv_dropdown_set_options(mode_dropdown, "Mouse: Click\nMouse: Motion\nKeyboard: Keypress");
     lv_obj_set_width(mode_dropdown, DROPDOWN_WIDTH);
     lv_obj_align_to(mode_dropdown, mode_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -149,7 +159,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_set_width(edge_label, LABEL_WIDTH);
     lv_obj_align_to(edge_label, detection_info, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
-    lv_obj_t *edge_dropdown = lv_dropdown_create(tab_detection);
+    edge_dropdown = lv_dropdown_create(tab_detection);
     lv_dropdown_set_options(edge_dropdown, "Falling\nRising");
     lv_obj_set_width(edge_dropdown, DROPDOWN_WIDTH);
     lv_obj_align_to(edge_dropdown, edge_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -160,7 +170,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_set_width(debounce_label, LABEL_WIDTH);
     lv_obj_align_to(debounce_label, edge_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
-    lv_obj_t *debounce_dropdown = lv_dropdown_create(tab_detection);
+    debounce_dropdown = lv_dropdown_create(tab_detection);
     lv_dropdown_set_options(debounce_dropdown, "20ms\n100ms\n200ms\n500ms\n1000ms");
     lv_obj_set_width(debounce_dropdown, DROPDOWN_WIDTH);
     lv_obj_align_to(debounce_dropdown, debounce_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -171,7 +181,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_set_width(bias_label, LABEL_WIDTH);
     lv_obj_align_to(bias_label, debounce_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
-    lv_obj_t *bias_dropdown = lv_dropdown_create(tab_detection);
+    bias_dropdown = lv_dropdown_create(tab_detection);
     lv_dropdown_set_options(bias_dropdown, "No Pull\nPull Up\nPull Down");
     lv_obj_set_width(bias_dropdown, DROPDOWN_WIDTH);
     lv_obj_align_to(bias_dropdown, bias_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -191,7 +201,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_set_width(trigger_level_label, LABEL_WIDTH);
     lv_obj_align_to(trigger_level_label, trigger_info, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
-    lv_obj_t *trigger_dropdown = lv_dropdown_create(tab_trigger);
+    trigger_dropdown = lv_dropdown_create(tab_trigger);
     lv_dropdown_set_options(trigger_dropdown, "Pull Low\nDrive High");
     lv_obj_set_width(trigger_dropdown, DROPDOWN_WIDTH);
     lv_obj_align_to(trigger_dropdown, trigger_level_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -202,11 +212,23 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_set_width(trigger_output_label, LABEL_WIDTH);
     lv_obj_align_to(trigger_output_label, trigger_level_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
-    lv_obj_t *trigger_output_dropdown = lv_dropdown_create(tab_trigger);
+    trigger_output_dropdown = lv_dropdown_create(tab_trigger);
     lv_dropdown_set_options(trigger_output_dropdown, "D6\nD11");
     lv_obj_set_width(trigger_output_dropdown, DROPDOWN_WIDTH);
     lv_obj_align_to(trigger_output_dropdown, trigger_output_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
     lv_obj_add_event_cb(trigger_output_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
+
+    // Add auto-trigger interval setting
+    lv_obj_t *trigger_interval_label = lv_label_create(tab_trigger);
+    lv_label_set_text(trigger_interval_label, "Auto-trigger Interval:");
+    lv_obj_set_width(trigger_interval_label, LABEL_WIDTH);
+    lv_obj_align_to(trigger_interval_label, trigger_output_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
+
+    trigger_interval_dropdown = lv_dropdown_create(tab_trigger);
+    lv_dropdown_set_options(trigger_interval_dropdown, "100ms\n200ms\n300ms\n400ms\n500ms\n600ms\n700ms\n800ms\n900ms\n1000ms");
+    lv_obj_set_width(trigger_interval_dropdown, DROPDOWN_WIDTH);
+    lv_obj_align_to(trigger_interval_dropdown, trigger_interval_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+    lv_obj_add_event_cb(trigger_interval_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Back button
     lv_obj_t *btn_back = lv_btn_create(settings_screen);
@@ -252,5 +274,16 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
         default: bias_index = 0; break;
     }
     lv_dropdown_set_selected(bias_dropdown, bias_index);
+
+    // Set auto-trigger interval
+    uint32_t current_interval = xlat_auto_trigger_interval_get();
+    uint16_t interval_index = (current_interval / 100) - 1; // Convert ms to index (0-9)
+    if (interval_index > 9) interval_index = 9; // Clamp to max value
+    lv_dropdown_set_selected(trigger_interval_dropdown, interval_index);
+
+    // Set auto-trigger output
+    uint16_t current_output = xlat_auto_trigger_output_get();
+    uint16_t output_index = (current_output == 6) ? 0 : 1; // D6 or D11
+    lv_dropdown_set_selected(trigger_output_dropdown, output_index);
 }
 

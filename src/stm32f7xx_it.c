@@ -58,8 +58,10 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* Go to infinite loop when Hard Fault exception occurs */
+    asm("bkpt 0");
     while (1)
     {
+      NVIC_SystemReset();
     }
 }
 

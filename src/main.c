@@ -59,11 +59,11 @@ int main(void)
     msgQGfxTask = osMessageCreate(osMessageQ(msgQGfxTask), NULL);    // create msg queue
 
     /* Create the thread(s) */
-    osThreadDef(xlatTask, xlat_task, osPriorityNormal, 0, 4096 / 4);
+    osThreadDef(xlatTask, xlat_task, osPriorityNormal, 0, 2048 / 4);
     xlatTaskHandle = osThreadCreate(osThread(xlatTask), NULL);
-    osThreadDef(lvglTask, gfx_task, osPriorityLow, 0, 4096 / 4);
+    osThreadDef(lvglTask, gfx_task, osPriorityLow, 0, 4096 * 2 / 4);
     lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
-    osThreadDef(usbHostTask, usb_host_task, osPriorityHigh, 0, 4096 / 4);
+    osThreadDef(usbHostTask, usb_host_task, osPriorityHigh, 0, 2048 / 4);
     usbHostTaskHandle = osThreadCreate(osThread(usbHostTask), NULL);
 
     /* Start scheduler */
