@@ -317,15 +317,26 @@ void xlat_process_usb_hid_event(void)
                 goto out;
             }
             hid_keyboard_report_t *kbd_report = (hid_keyboard_report_t *)hevt->report;
+
+            // check the modifier bits:
+            if (kbd_report->modifier) {
+                // Save the captured USB event timestamp
+                last_usb_timestamp_us = hevt->timestamp;
+                // calculate the time between the last key press and this key press:
+                calculate_gpio_to_usb_time();
+                printf("USB HID event: modifier 0x%02X\n", kbd_report->modifier);
+                break;
+            }
+
             // loop over the keycode array to see if any keys are pressed:
             for (uint8_t i = 0; i < 6; i++) {
                 if (kbd_report->keycode[i]) {
                     if (kbd_report->keycode[i] > 1) {
                         // Save the captured USB event timestamp
                         last_usb_timestamp_us = hevt->timestamp;
-                        printf("USB HID event: key press 0x%02X\n", kbd_report->keycode[i]);
                         // calculate the time between the last key press and this key press:
                         calculate_gpio_to_usb_time();
+                        printf("USB HID event: key press 0x%02X\n", kbd_report->keycode[i]);
                     }
                 }
             }
