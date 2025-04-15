@@ -202,7 +202,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_align_to(trigger_level_label, trigger_info, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
     trigger_dropdown = lv_dropdown_create(tab_trigger);
-    lv_dropdown_set_options(trigger_dropdown, "Pull Low\nDrive High");
+    lv_dropdown_set_options(trigger_dropdown, "Low\nHigh");
     lv_obj_set_width(trigger_dropdown, DROPDOWN_WIDTH);
     lv_obj_align_to(trigger_dropdown, trigger_level_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
     lv_obj_add_event_cb(trigger_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
@@ -213,7 +213,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_align_to(trigger_output_label, trigger_level_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
     trigger_output_dropdown = lv_dropdown_create(tab_trigger);
-    lv_dropdown_set_options(trigger_output_dropdown, "D6\nD11");
+    lv_dropdown_set_options(trigger_output_dropdown, "D6 (push-pull)\nD11 (open-drain)");
     lv_obj_set_width(trigger_output_dropdown, DROPDOWN_WIDTH);
     lv_obj_align_to(trigger_output_dropdown, trigger_output_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
     lv_obj_add_event_cb(trigger_output_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
