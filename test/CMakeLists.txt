@@ -4,6 +4,9 @@ project(xlat_linux)
 # Define project root directory
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
+# Include version definitions
+include(${PROJECT_ROOT}/version.cmake)
+
 # Set build type to Debug if not specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
@@ -80,24 +83,4 @@ target_compile_definitions(xlat_linux PRIVATE
     LV_CONF_INCLUDE_SIMPLE
     LV_CONF_PATH=${LV_CONF_PATH}
     LV_DRV_CONF_PATH=${LV_DRV_CONF_PATH}
-)
-
-# Add version information
-set(APP_VERSION_MAJOR 1)
-set(APP_VERSION_MINOR 0)
-set(APP_VERSION_PATCH 0)
-set(APP_VERSION_STRING "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}")
-
-# Get the GIT SHA
-execute_process(
-        COMMAND git rev-parse --short HEAD
-        OUTPUT_VARIABLE GIT_SHA
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-target_compile_definitions(xlat_linux PRIVATE
-    APP_VERSION_MAJOR=${APP_VERSION_MAJOR}
-    APP_VERSION_MINOR=${APP_VERSION_MINOR}
-    APP_VERSION_PATCH=${APP_VERSION_PATCH}
-    APP_VERSION_FULL="${APP_VERSION_STRING}-${GIT_SHA}"
 )

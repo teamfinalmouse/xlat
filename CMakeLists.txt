@@ -19,11 +19,8 @@ set(CMAKE_C_FLAGS_RELEASE "-Os")
 set(CMAKE_CXX_FLAGS_RELEASE "-Os")
 set(CMAKE_ASM_SOURCE_FILE_EXTENSIONS s)
 
-# Define the application version
-set(APP_VERSION_MAJOR 1)
-set(APP_VERSION_MINOR 5)
-set(APP_VERSION_PATCH 99) # patch level 99 = work-in-progress for next release
-set(APP_VERSION_STRING "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}")
+# Include version definitions
+include(version.cmake)
 
 add_compile_options(
         ${CPU_OPTIONS}
@@ -187,21 +184,6 @@ add_executable(${PROJECT_NAME}
         )
 
 tinyusb_target_add(${PROJECT_NAME})
-
-# Get the GIT SHA
-execute_process(
-        COMMAND git rev-parse --short HEAD
-        OUTPUT_VARIABLE GIT_SHA
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE -DGIT_SHA="${GIT_SHA}")
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE -DAPP_VERSION_MAJOR=${APP_VERSION_MAJOR})
-target_compile_definitions(${PROJECT_NAME} PRIVATE -DAPP_VERSION_MINOR=${APP_VERSION_MINOR})
-target_compile_definitions(${PROJECT_NAME} PRIVATE -DAPP_VERSION_PATCH=${APP_VERSION_PATCH})
-target_compile_definitions(${PROJECT_NAME} PRIVATE -DAPP_VERSION="${APP_VERSION_STRING}")
-target_compile_definitions(${PROJECT_NAME} PRIVATE -DAPP_VERSION_FULL="${APP_VERSION_STRING}-${GIT_SHA}")
 
 target_link_libraries(${PROJECT_NAME}
         ${CPU_OPTIONS}
