@@ -25,7 +25,7 @@
 static enum xlat_mode current_mode = XLAT_MODE_MOUSE_CLICK;
 static bool auto_trigger_level_high = true;
 static uint32_t auto_trigger_interval_ms = 300;
-static uint8_t auto_trigger_output_pin = 6;
+static uint8_t auto_trigger_output_pin = 11;
 
 uint8_t button_mask[REPORT_LEN];
 uint8_t motion_mask[REPORT_LEN];
