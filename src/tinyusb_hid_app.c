@@ -69,6 +69,12 @@ void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const *desc_re
 // Invoked when device with hid interface is un-mounted
 void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance) {
   printf("HID device address = %d, instance = %d is unmounted\n", dev_addr, instance);
+  if (tuh_connected(0)) {
+    // print in red
+    printf("\033[31m");
+    printf("\t enumerating=1 !!\n");
+    printf("\033[0m");
+  }
   xlat_clear_device_info();
 }
 

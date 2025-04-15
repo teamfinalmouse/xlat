@@ -53,11 +53,11 @@ void xSemaphoreTake(SemaphoreHandle_t xSemaphore, int xTicksToWait);
 void xSemaphoreGive(SemaphoreHandle_t xSemaphore);
 
 // XLAT function stubs
-uint32_t xlat_get_latency_standard_deviation(enum latency_type type);
-uint32_t xlat_get_average_latency(enum latency_type type);
-uint32_t xlat_get_latency_us(enum latency_type type);
-uint32_t xlat_get_latency_count(enum latency_type type);
-void xlat_reset_latency(void);
+uint32_t xlat_latency_standard_deviation_get(enum latency_type type);
+uint32_t xlat_latency_average_get(enum latency_type type);
+uint32_t xlat_last_latency_us_get(enum latency_type type);
+uint32_t xlat_latency_count_get(enum latency_type type);
+void xlat_latency_reset(void);
 void gfx_settings_create_page(lv_obj_t *previous_screen);
 void xlat_auto_trigger_turn_off_action(void);
 void xlat_auto_trigger_action(void);

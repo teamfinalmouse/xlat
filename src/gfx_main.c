@@ -66,15 +66,15 @@ LV_IMG_DECLARE(xlat_logo);
 static void latency_label_update(void)
 {
     lv_label_set_text_fmt(latency_label, "#%lu: %ldus, avg %ldus, stdev %ldus",
-                          xlat_get_latency_count(LATENCY_GPIO_TO_USB),
-                          xlat_get_latency_us(LATENCY_GPIO_TO_USB),
-                          xlat_get_average_latency(LATENCY_GPIO_TO_USB),
-                          xlat_get_latency_standard_deviation(LATENCY_GPIO_TO_USB)
+                          xlat_latency_count_get(LATENCY_GPIO_TO_USB),
+                          xlat_last_latency_us_get(LATENCY_GPIO_TO_USB),
+                          xlat_latency_average_get(LATENCY_GPIO_TO_USB),
+                          xlat_latency_standard_deviation_get(LATENCY_GPIO_TO_USB)
                           );
     lv_obj_align_to(latency_label, chart, LV_ALIGN_OUT_TOP_MID, 0, 0);
 }
 
-void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid)
+void gfx_device_label_set(const char * manufacturer, const char * productname, const char *vidpid)
 {
     char tempstr[21];
 
@@ -96,10 +96,10 @@ void gfx_set_device_label(const char * manufacturer, const char * productname, c
     lv_obj_align_to(vidpid_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 22);
 }
 
-static void clear_latency_measurements(void)
+static void latency_measurements_clear(void)
 {
     // reset latency numbers
-    xlat_reset_latency();
+    xlat_latency_reset();
     chart_reset();
     latency_label_update();
 }
@@ -110,7 +110,7 @@ static void btn_clear_event_cb(lv_event_t * e)
 
     if (code == LV_EVENT_CLICKED) {
         // reset latency numbers
-        clear_latency_measurements();
+        latency_measurements_clear();
     }
 }
 
@@ -167,7 +167,7 @@ void auto_trigger_callback(lv_timer_t * timer)
         lv_obj_center(trigger_label);
 
         // Restart the timer with a random period added to the base period
-        lv_timer_set_period(timer, AUTO_TRIGGER_PERIOD_MS + (rand() % 10));
+        lv_timer_set_period(timer, xlat_auto_trigger_interval_ms_get() + (rand() % 10));
     } else {
         auto_trigger_clear_timer();
     }
@@ -191,7 +191,7 @@ static void btn_trigger_event_cb(lv_event_t * e)
             // seed the random number generator
             srand(xlat_counter_1mhz_get());
             // start the timer
-            trigger_timer = lv_timer_create(auto_trigger_callback, AUTO_TRIGGER_PERIOD_MS,  &count);
+            trigger_timer = lv_timer_create(auto_trigger_callback, xlat_auto_trigger_interval_ms_get(), &count);
             //lv_timer_set_repeat_count(timer, count);
         }
     }
@@ -317,17 +317,17 @@ static void new_theme_init_and_set(void)
     lv_disp_set_theme(NULL, &th_new);
 }
 
-void gfx_set_data_locations_label(void)
+void gfx_data_locations_label_set(void)
 {
     char text[100];
-    uint16_t * button_bits = xlat_get_button_bits();
-    uint16_t * motion_bits = xlat_get_motion_bits();
-    bool keyboard_usage_page_found = xlat_get_keyboard_usage_page_found();
+    uint16_t * button_bits = xlat_button_bits_get();
+    uint16_t * motion_bits = xlat_motion_bits_get();
+    bool keyboard_usage_page_found = xlat_keyboard_usage_page_found_get();
 
     if (*button_bits || *motion_bits) {
-        sprintf(text, "Data (%u): %u button, %u motion bits", xlat_get_report_id(), *button_bits, *motion_bits);
+        sprintf(text, "Data (%u): %u button, %u motion bits", xlat_report_id_get(), *button_bits, *motion_bits);
     } else if (keyboard_usage_page_found) {
-        sprintf(text, "Data (%u): keyboard found", xlat_get_report_id());
+        sprintf(text, "Data (%u): keyboard found", xlat_report_id_get());
     } else {
         // offsets not found
         sprintf(text, "Data: locations not found");
@@ -337,11 +337,11 @@ void gfx_set_data_locations_label(void)
     lv_obj_align_to(hid_data_locations_label, productname_label, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 3);
 }
 
-void gfx_set_mode_label(void)
+void gfx_mode_label_set(void)
 {
     char text[100];
     const char *mode_str;
-    switch (xlat_get_mode()) {
+    switch (xlat_mode_get()) {
         case XLAT_MODE_MOUSE_CLICK:
             mode_str = "CLICK";
             break;
@@ -360,13 +360,13 @@ void gfx_set_mode_label(void)
     lv_obj_align_to(mode_label, vidpid_label, LV_ALIGN_OUT_LEFT_BOTTOM, -4, 0);
 }
 
-void gfx_update_labels(void)
+void gfx_labels_update(void)
 {
-    gfx_set_device_label(usb_host_get_manuf_string(),
+    gfx_device_label_set(usb_host_get_manuf_string(),
                          usb_host_get_product_string(),
                          usb_host_get_vidpid_string());
-    gfx_set_data_locations_label();
-    gfx_set_mode_label();
+    gfx_data_locations_label_set();
+    gfx_mode_label_set();
 }
 
 void gfx_xlat_gui(void)
@@ -390,15 +390,15 @@ void gfx_xlat_gui(void)
     vidpid_label = lv_label_create(lv_scr_act());
     productname_label = lv_label_create(lv_scr_act());
     manufacturer_label = lv_label_create(lv_scr_act());
-    gfx_set_device_label("", "No USB device found", "");
+    gfx_device_label_set("", "No USB device found", "");
 
     // HID data locations label
     hid_data_locations_label = lv_label_create(lv_scr_act());
-    gfx_set_data_locations_label();
+    gfx_data_locations_label_set();
 
     // Mode label
     mode_label = lv_label_create(lv_scr_act());
-    gfx_set_mode_label();
+    gfx_mode_label_set();
 
     ///////////////////////////
     // BUTTONS AT THE BOTTOM //
@@ -466,7 +466,7 @@ void gfx_xlat_gui(void)
     ///////////
     lv_chart_new(Y_CHART_RANGE);
     lv_chart_add_cursor(chart, lv_color_white(), LV_DIR_TOP);
-    clear_latency_measurements();
+    latency_measurements_clear();
 }
 
 
@@ -526,19 +526,19 @@ void gfx_task(void const * argument)
                 break;
 
             case GFX_EVENT_DEVICE_CONNECTED:
-                gfx_update_labels();
+                gfx_labels_update();
                 break;
 
             case GFX_EVENT_MODE_CHANGED:
-                gfx_set_mode_label();
+                gfx_mode_label_set();
                 break;
 
             case GFX_EVENT_DEVICE_DISCONNECTED:
                 auto_trigger_clear_timer(); // stop auto-trigger in case it's running
-                gfx_set_data_locations_label();
-                gfx_set_device_label("", "No USB device found", "");
-                gfx_set_mode_label();
-                clear_latency_measurements();
+                gfx_data_locations_label_set();
+                gfx_device_label_set("", "No USB device found", "");
+                gfx_mode_label_set();
+                latency_measurements_clear();
                 break;
             }
 
@@ -555,7 +555,7 @@ void HAL_SYSTICK_Callback(void)
     lv_tick_inc(1);
 }
 
-void gfx_set_trigger_ready(bool state)
+void gfx_trigger_ready_set(bool state)
 {
     if (state) {
         lv_obj_add_state(trigger_ready_cb, LV_STATE_CHECKED);
@@ -564,7 +564,7 @@ void gfx_set_trigger_ready(bool state)
     }
 }
 
-void gfx_send_event(gfx_event_t type, int32_t value)
+void gfx_event_send(gfx_event_t type, int32_t value)
 {
     struct gfx_event *evt;
     evt = osPoolAlloc(gfxevt_pool); // Allocate memory for the message

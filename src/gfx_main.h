@@ -39,12 +39,12 @@ struct gfx_event {
 
 void gfx_init(void);
 void gfx_task(void const * argument);
-void gfx_set_device_label(const char * manufacturer, const char * productname, const char *vidpid);
-void gfx_set_trigger_ready(bool state);
-void gfx_set_data_locations_label(void);
-void gfx_set_mode_label(void);
-void gfx_update_labels(void);
-void gfx_send_event(gfx_event_t type, int32_t value);
+void gfx_device_label_set(const char * manufacturer, const char * productname, const char *vidpid);
+void gfx_trigger_ready_set(bool state);
+void gfx_data_locations_label_set(void);
+void gfx_mode_label_set(void);
+void gfx_labels_update(void);
+void gfx_event_send(gfx_event_t type, int32_t value);
 void gfx_xlat_gui(void);
 
 #endif //XLAT_F7_FW_GFX_H

@@ -234,7 +234,7 @@ void tuh_mount_cb(uint8_t daddr) {
 
 
         // Send a message to the gfx thread, to refresh the device info
-        gfx_send_event(GFX_EVENT_DEVICE_CONNECTED, 0);
+        gfx_event_send(GFX_EVENT_DEVICE_CONNECTED, 0);
     }
 }
 

@@ -26,13 +26,13 @@
  * @brief Set the XLAT mode
  * @param mode The mode to set
  */
-void xlat_set_mode(enum xlat_mode mode);
+void xlat_mode_set(enum xlat_mode mode);
 
 /**
  * @brief Get the current XLAT mode
  * @return The current mode
  */
-enum xlat_mode xlat_get_mode(void);
+enum xlat_mode xlat_mode_get(void);
 
 /**
  * @brief Set the auto-trigger level
@@ -50,13 +50,13 @@ bool xlat_auto_trigger_level_is_high(void);
  * @brief Set the auto-trigger interval
  * @param ms The interval in milliseconds (100-1000)
  */
-void xlat_auto_trigger_interval_set(uint32_t ms);
+void xlat_auto_trigger_interval_ms_set(uint32_t ms);
 
 /**
  * @brief Get the auto-trigger interval
  * @return The interval in milliseconds
  */
-uint32_t xlat_auto_trigger_interval_get(void);
+uint32_t xlat_auto_trigger_interval_ms_get(void);
 
 /**
  * @brief Set the auto-trigger output pin
@@ -74,60 +74,60 @@ uint8_t xlat_auto_trigger_output_get(void);
  * @brief Set the GPIO IRQ holdoff time
  * @param us The holdoff time in microseconds
  */
-void xlat_set_gpio_irq_holdoff_us(uint32_t us);
+void xlat_gpio_irq_holdoff_us_set(uint32_t us);
 
 /**
  * @brief Get the GPIO IRQ holdoff time
  * @return The holdoff time in microseconds
  */
-uint32_t xlat_get_gpio_irq_holdoff_us(void);
+uint32_t xlat_gpio_irq_holdoff_us_get(void);
 
 /**
  * @brief Get the button bits
  * @return The button bits
  */
-uint16_t * xlat_get_button_bits(void);
+uint16_t * xlat_button_bits_get(void);
 
 /**
  * @brief Get the motion bits
  * @return The motion bits
  */
-uint16_t * xlat_get_motion_bits(void);
+uint16_t * xlat_motion_bits_get(void);
 
 /**
  * @brief Get the report ID
  * @return The report ID
  */
-uint8_t xlat_get_report_id(void);
+uint8_t xlat_report_id_get(void);
 
 /**
  * @brief Set the report ID
  * @param id The report ID
  */
-void xlat_set_report_id(uint8_t id);
+void xlat_report_id_set(uint8_t id);
 
 /**
  * @brief Get the keyboard usage page found
  * @return true if the keyboard usage page was found, false otherwise
  */
-bool xlat_get_keyboard_usage_page_found(void);
+bool xlat_keyboard_usage_page_found_get(void);
 
 /**
  * @brief Get the button mask
  * @return The button mask
  */
-uint8_t *xlat_get_button_mask(void);
+uint8_t *xlat_button_mask_get(void);
 
 /**
  * @brief Get the motion mask
  * @return The motion mask
  */
-uint8_t *xlat_get_motion_mask(void);
+uint8_t *xlat_motion_mask_get(void);
 
 /**
  * @brief Set the keyboard usage page found
  * @param found true if the keyboard usage page was found, false otherwise
  */
-void xlat_set_keyboard_usage_page_found(bool found);
+void xlat_keyboard_usage_page_found_set(bool found);
 
 #endif /* XLAT_CONFIG_H */ 

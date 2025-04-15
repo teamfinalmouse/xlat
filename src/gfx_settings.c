@@ -80,26 +80,26 @@ static void event_handler(lv_event_t* e)
                 case 4: val = 1000; break;
                 default: break;
             }
-            xlat_set_gpio_irq_holdoff_us(val * 1000);
+            xlat_gpio_irq_holdoff_us_set(val * 1000);
         } else if (obj == trigger_dropdown) {
             uint16_t sel = lv_dropdown_get_selected(obj);
             xlat_auto_trigger_level_set(sel);
         } else if (obj == mode_dropdown) {
             uint16_t sel = lv_dropdown_get_selected(obj);
             if (sel == 0) {
-                xlat_set_mode(XLAT_MODE_MOUSE_CLICK);
-                gfx_send_event(GFX_EVENT_MODE_CHANGED, 0);
+                xlat_mode_set(XLAT_MODE_MOUSE_CLICK);
+                gfx_event_send(GFX_EVENT_MODE_CHANGED, 0);
             } else if (sel == 1) {
-                xlat_set_mode(XLAT_MODE_MOUSE_MOTION);
-                gfx_send_event(GFX_EVENT_MODE_CHANGED, 0);
+                xlat_mode_set(XLAT_MODE_MOUSE_MOTION);
+                gfx_event_send(GFX_EVENT_MODE_CHANGED, 0);
             } else if (sel == 2) {
-                xlat_set_mode(XLAT_MODE_KEYBOARD);
-                gfx_send_event(GFX_EVENT_MODE_CHANGED, 0);
+                xlat_mode_set(XLAT_MODE_KEYBOARD);
+                gfx_event_send(GFX_EVENT_MODE_CHANGED, 0);
             }
         } else if (obj == trigger_interval_dropdown) {
             uint16_t sel = lv_dropdown_get_selected(obj);
             uint32_t interval = (sel + 1) * 100; // Convert selection to milliseconds (100-1000ms)
-            xlat_auto_trigger_interval_set(interval);
+            xlat_auto_trigger_interval_ms_set(interval);
         } else if (obj == trigger_output_dropdown) {
             uint16_t sel = lv_dropdown_get_selected(obj);
             uint8_t pin = (sel == 0) ? 6 : 11; // D6 or D11
@@ -247,12 +247,12 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_align(version_label, LV_ALIGN_BOTTOM_RIGHT, -10, -10);
 
     // Set initial values
-    lv_dropdown_set_selected(mode_dropdown, xlat_get_mode());
+    lv_dropdown_set_selected(mode_dropdown, xlat_mode_get());
     lv_dropdown_set_selected(edge_dropdown, hw_config_input_trigger_is_rising_edge());
     lv_dropdown_set_selected(trigger_dropdown, xlat_auto_trigger_level_is_high());
 
     // Set debounce time
-    uint32_t debounce_time = xlat_get_gpio_irq_holdoff_us() / 1000;
+    uint32_t debounce_time = xlat_gpio_irq_holdoff_us_get() / 1000;
     uint16_t debounce_index = 0;
     switch (debounce_time) {
         case 20: debounce_index = 0; break;
@@ -276,7 +276,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_dropdown_set_selected(bias_dropdown, bias_index);
 
     // Set auto-trigger interval
-    uint32_t current_interval = xlat_auto_trigger_interval_get();
+    uint32_t current_interval = xlat_auto_trigger_interval_ms_get();
     uint16_t interval_index = (current_interval / 100) - 1; // Convert ms to index (0-9)
     if (interval_index > 9) interval_index = 9; // Clamp to max value
     lv_dropdown_set_selected(trigger_interval_dropdown, interval_index);

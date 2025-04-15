@@ -58,11 +58,11 @@ int main()
     lv_disp_set_rotation(lv_disp_get_default(), LV_DISP_ROT_NONE);
 
     /* pretent a device is connected */
-    gfx_set_device_label(usb_host_get_manuf_string(),
+    gfx_device_label_set(usb_host_get_manuf_string(),
                          usb_host_get_product_string(),
                          usb_host_get_vidpid_string());
-    gfx_set_data_locations_label();
-    gfx_set_mode_label();
+    gfx_data_locations_label_set();
+    gfx_mode_label_set();
 
     xlat_initialized = true;
 

@@ -218,28 +218,28 @@ void xSemaphoreGive(SemaphoreHandle_t xSemaphore) {
 
 // XLAT stubs:
 
-uint32_t xlat_get_latency_standard_deviation(enum latency_type type) {
-    printf("[stub] xlat_get_latency_standard_deviation\n");
+uint32_t xlat_latency_standard_deviation_get(enum latency_type type) {
+    printf("[stub] xlat_latency_standard_deviation_get\n");
     return 0;
 }
 
-uint32_t xlat_get_average_latency(enum latency_type type) {
-    printf("[stub] xlat_get_average_latency\n");
+uint32_t xlat_latency_average_get(enum latency_type type) {
+    printf("[stub] xlat_latency_average_get\n");
     return 0;
 }
 
-uint32_t xlat_get_latency_us(enum latency_type type) {
-    printf("[stub] xlat_get_latency_us\n");
+uint32_t xlat_last_latency_us_get(enum latency_type type) {
+    printf("[stub] xlat_last_latency_us_get\n");
     return 0;
 }
 
-uint32_t xlat_get_latency_count(enum latency_type type) {
-    printf("[stub] xlat_get_latency_count\n");
+uint32_t xlat_latency_count_get(enum latency_type type) {
+    printf("[stub] xlat_latency_count_get\n");
     return 0;
 }
 
-void xlat_reset_latency(void) {
-    printf("[stub] xlat_reset_latency\n");
+void xlat_latency_reset(void) {
+    printf("[stub] xlat_latency_reset\n");
 }
 
 void xlat_auto_trigger_turn_off_action(void) {
