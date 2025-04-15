@@ -22,7 +22,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define AUTO_TRIGGER_PERIOD_MS (300)
 #define AUTO_TRIGGER_PRESSED_PERIOD_MS (30)
 #define REPORT_LEN 64
 
@@ -54,23 +53,23 @@ void xlat_task(void const * argument);
 void xlat_process_usb_hid_event(void);
 void xlat_usb_event_callback(uint32_t timestamp, uint8_t const *report, size_t report_size, uint8_t itf_protocol); // called from USB Host library
 
-uint32_t xlat_get_latency_us(enum latency_type type);
-uint32_t xlat_get_average_latency(enum latency_type type);
-uint32_t xlat_get_latency_count(enum latency_type type);
-uint32_t xlat_get_latency_variance(enum latency_type type);
-uint32_t xlat_get_latency_standard_deviation(enum latency_type type);
+uint32_t xlat_last_latency_us_get(enum latency_type type);
+uint32_t xlat_latency_average_get(enum latency_type type);
+uint32_t xlat_latency_count_get(enum latency_type type);
+uint32_t xlat_latency_variance_get(enum latency_type type);
+uint32_t xlat_latency_standard_deviation_get(enum latency_type type);
 
-void xlat_reset_latency(void);
-void xlat_add_latency_measurement(uint32_t latency_us, enum latency_type type);
+void xlat_latency_reset(void);
+void xlat_latency_measurement_add(uint32_t latency_us, enum latency_type type);
 void xlat_print_measurement(void);
 
-void xlat_set_gpio_irq_holdoff_us(uint32_t us);
-uint32_t xlat_get_gpio_irq_holdoff_us(void);
+void xlat_gpio_irq_holdoff_us_set(uint32_t us);
+uint32_t xlat_gpio_irq_holdoff_us_get(void);
 
 uint32_t xlat_counter_1mhz_get(void);
 
-uint32_t xlat_get_last_usb_timestamp_us(void);
-uint32_t xlat_get_last_button_timestamp_us(void);
+uint32_t xlat_last_usb_timestamp_us_get(void);
+uint32_t xlat_last_button_timestamp_us_get(void);
 
 void xlat_set_using_reportid(bool use_reportid);
 bool xlat_get_using_reportid(void);

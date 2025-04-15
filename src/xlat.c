@@ -166,36 +166,36 @@ static void hidreport_check_item(HID_ReportItem_t *item)
     // Usage Page 0x0007: Keyboard/Keypad
     if (item->Attributes.Usage.Page == 0x0007) {
         printf("Keyboard/Keypad\n");
-        xlat_set_keyboard_usage_page_found(true);
+        xlat_keyboard_usage_page_found_set(true);
     }
 
     // Usage Page 0x0009: Buttons
     if (item->Attributes.Usage.Page == 0x0009) {
-        mask = xlat_get_button_mask();
-        bits = xlat_get_button_bits();
+        mask = xlat_button_mask_get();
+        bits = xlat_button_bits_get();
     }
     // Usage Page 0x0001: Generic Desktop
     // Usage 0x0030: X
     // Usage 0x0031: Y
     if ((item->Attributes.Usage.Page == 0x0001) &&
         ((item->Attributes.Usage.Usage == 0x0030) || (item->Attributes.Usage.Usage == 0x0031))) {
-        mask = xlat_get_motion_mask();
-        bits = xlat_get_motion_bits();
+        mask = xlat_motion_mask_get();
+        bits = xlat_motion_bits_get();
     }
 
     if (mask != NULL) {
-        if (xlat_get_report_id() == 0) {
-            xlat_set_report_id(item->ReportID);
+        if (xlat_report_id_get() == 0) {
+            xlat_report_id_set(item->ReportID);
         }
-        if (xlat_get_report_id() != item->ReportID) {
+        if (xlat_report_id_get() != item->ReportID) {
             return;
         }
         for (uint8_t i = 0; i < item->Attributes.BitSize; i++) {
             int byte_no = (item->BitOffset + i) / 8;
             int bit_no = (item->BitOffset + i) % 8;
-            byte_no += (xlat_get_report_id() ? 1 : 0);
-            if (byte_no < sizeof(xlat_get_button_mask())) {
-                xlat_get_button_mask()[byte_no] |= (1 << bit_no);
+            byte_no += (xlat_report_id_get() ? 1 : 0);
+            if (byte_no < REPORT_LEN) {
+                mask[byte_no] |= (1 << bit_no);
                 (*bits)++;
             }
         }
@@ -219,7 +219,7 @@ static int calculate_gpio_to_usb_time(void)
     gpio_irq_consumer = gpio_irq_producer;
 
     xSemaphoreTake(lvgl_mutex, portMAX_DELAY);
-    gfx_set_trigger_ready(false);
+    gfx_trigger_ready_set(false);
     xSemaphoreGive(lvgl_mutex);
 
     // gpio -> usb stats
@@ -231,7 +231,7 @@ static int calculate_gpio_to_usb_time(void)
         return -1;
     }
 
-    xlat_add_latency_measurement(us, LATENCY_GPIO_TO_USB);
+    xlat_latency_measurement_add(us, LATENCY_GPIO_TO_USB);
 
     // send a message to the gfx thread, to refresh the plot
     struct gfx_event *evt;
@@ -269,7 +269,7 @@ void xlat_process_usb_hid_event(void)
             uint8_t* hid_raw_data = hevt->report;
 
             // Check if the report ID is matching what's expected
-            if ((xlat_get_report_id() != 0) && (hid_raw_data[0] != xlat_get_report_id())) {
+            if ((xlat_report_id_get() != 0) && (hid_raw_data[0] != xlat_report_id_get())) {
                 // ignore
                 goto out;
             }
@@ -283,11 +283,11 @@ void xlat_process_usb_hid_event(void)
 #endif
 
             // FOR BUTTONS/CLICKS:
-            if (xlat_get_mode() == XLAT_MODE_MOUSE_CLICK) {
+            if (xlat_mode_get() == XLAT_MODE_MOUSE_CLICK) {
                 // The correct location of button data is determined by parsing the HID descriptor
                 // This information is available in the button_mask
-                for (uint8_t i = (xlat_get_report_id() ? 1 : 0); i < hevt->report_size; i++) {
-                    if (((hid_raw_data[i] ^ prev_report[i]) & hid_raw_data[i] & xlat_get_button_mask()[i])) {
+                for (uint8_t i = (xlat_report_id_get() ? 1 : 0); i < hevt->report_size; i++) {
+                    if (((hid_raw_data[i] ^ prev_report[i]) & hid_raw_data[i] & xlat_button_mask_get()[i])) {
                         last_usb_timestamp_us = hevt->timestamp;
                         calculate_gpio_to_usb_time();
                         printf("[%5lu] hid click @ %lu - byte %d\n", xTaskGetTickCount(), hevt->timestamp, i);
@@ -296,11 +296,11 @@ void xlat_process_usb_hid_event(void)
                 }
             }
             // FOR MOTION:
-            else if (xlat_get_mode() == XLAT_MODE_MOUSE_MOTION) {
+            else if (xlat_mode_get() == XLAT_MODE_MOUSE_MOTION) {
                 // The correct location of button data is determined by parsing the HID descriptor
                 // This information is available in the motion_mask
-                for (uint8_t i = (xlat_get_report_id() ? 1 : 0); i < hevt->report_size; i++) {
-                    if (hid_raw_data[i] & xlat_get_motion_mask()[i]) {
+                for (uint8_t i = (xlat_report_id_get() ? 1 : 0); i < hevt->report_size; i++) {
+                    if (hid_raw_data[i] & xlat_motion_mask_get()[i]) {
                         last_usb_timestamp_us = hevt->timestamp;
                         calculate_gpio_to_usb_time();
                         printf("[%5lu] hid motion @ %lu\n", xTaskGetTickCount(), hevt->timestamp);
@@ -313,7 +313,7 @@ void xlat_process_usb_hid_event(void)
         }
 
         case HID_ITF_PROTOCOL_KEYBOARD:
-            if (xlat_get_mode() != XLAT_MODE_KEYBOARD) {
+            if (xlat_mode_get() != XLAT_MODE_KEYBOARD) {
                 goto out;
             }
             hid_keyboard_report_t *kbd_report = (hid_keyboard_report_t *)hevt->report;
@@ -349,7 +349,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     uint32_t cnt = xlat_counter_1mhz_get();
     // debounce X ms
-    if (cnt - last_btn_gpio_timestamp < xlat_get_gpio_irq_holdoff_us()) {
+    if (cnt - last_btn_gpio_timestamp < xlat_gpio_irq_holdoff_us_get()) {
         return;
     }
     last_btn_gpio_timestamp = cnt;
@@ -357,7 +357,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
     // disable the interrupt and re-enable later in a timer
     hw_exti_interrupts_disable();
-    xTimerChangePeriodFromISR(xlat_timer_handle, pdMS_TO_TICKS(xlat_get_gpio_irq_holdoff_us() / 1000), NULL);
+    xTimerChangePeriodFromISR(xlat_timer_handle, pdMS_TO_TICKS(xlat_gpio_irq_holdoff_us_get() / 1000), NULL);
     xTimerStartFromISR(xlat_timer_handle, NULL);
 
     // print the event
@@ -389,7 +389,7 @@ void xlat_usb_event_callback(uint32_t timestamp, uint8_t const *report, size_t r
 }
 
 
-uint32_t xlat_get_latency_us(enum latency_type type)
+uint32_t xlat_last_latency_us_get(enum latency_type type)
 {
     if (type >= LATENCY_TYPE_MAX) {
         return 0;
@@ -397,12 +397,12 @@ uint32_t xlat_get_latency_us(enum latency_type type)
     return last_latency_us[type];
 }
 
-uint32_t xlat_get_last_button_timestamp_us(void)
+uint32_t xlat_last_button_timestamp_us_get(void)
 {
     return last_btn_gpio_timestamp;
 }
 
-uint32_t xlat_get_average_latency(enum latency_type type)
+uint32_t xlat_latency_average_get(enum latency_type type)
 {
     if (type >= LATENCY_TYPE_MAX) {
         return 0;
@@ -410,7 +410,7 @@ uint32_t xlat_get_average_latency(enum latency_type type)
     return (uint32_t)(average_latency_us_sum[type] / average_latency_us_count[type]);
 }
 
-uint32_t xlat_get_latency_variance(enum latency_type type)
+uint32_t xlat_latency_variance_get(enum latency_type type)
 {
     if (type >= LATENCY_TYPE_MAX) {
         return 0;
@@ -420,17 +420,17 @@ uint32_t xlat_get_latency_variance(enum latency_type type)
     return (uint32_t)(avg_sq - avg * avg);
 }
 
-uint32_t xlat_get_latency_standard_deviation(enum latency_type type)
+uint32_t xlat_latency_standard_deviation_get(enum latency_type type)
 {
-    return (uint32_t)sqrt(xlat_get_latency_variance(type));
+    return (uint32_t)sqrt(xlat_latency_variance_get(type));
 }
 
-uint32_t xlat_get_last_usb_timestamp_us(void)
+uint32_t xlat_last_usb_timestamp_us_get(void)
 {
     return last_usb_timestamp_us;
 }
 
-uint32_t xlat_get_latency_count(enum latency_type type)
+uint32_t xlat_latency_count_get(enum latency_type type)
 {
     if (type >= LATENCY_TYPE_MAX) {
         return 0;
@@ -438,7 +438,7 @@ uint32_t xlat_get_latency_count(enum latency_type type)
     return average_latency_us_count[type];
 }
 
-void xlat_add_latency_measurement(uint32_t latency_us, enum latency_type type)
+void xlat_latency_measurement_add(uint32_t latency_us, enum latency_type type)
 {
     if (type >= LATENCY_TYPE_MAX) {
         return;
@@ -452,7 +452,7 @@ void xlat_add_latency_measurement(uint32_t latency_us, enum latency_type type)
 //    printf("average latency: %5lu us\n", (uint32_t)(average_latency_us_sum / average_latency_us_count));
 }
 
-void xlat_reset_latency(void)
+void xlat_latency_reset(void)
 {
     for (int i = 0; i < LATENCY_TYPE_MAX; i++) {
         last_latency_us[i] = 0;
@@ -469,7 +469,7 @@ static void xlat_timer_callback(TimerHandle_t xTimer)
 
     // Update the trigger ready flag in the UI
     xSemaphoreTake(lvgl_mutex, portMAX_DELAY);
-    gfx_set_trigger_ready(true);
+    gfx_trigger_ready_set(true);
     xSemaphoreGive(lvgl_mutex);
 }
 
@@ -503,10 +503,10 @@ void xlat_print_measurement(void)
     // print the new measurement to the console in csv format
     char buf[50];
     snprintf(buf, sizeof(buf), "%lu;%lu;%lu;%lu\n",
-             xlat_get_latency_count(LATENCY_GPIO_TO_USB),
-             xlat_get_latency_us(LATENCY_GPIO_TO_USB),
-             xlat_get_average_latency(LATENCY_GPIO_TO_USB),
-             xlat_get_latency_standard_deviation(LATENCY_GPIO_TO_USB));
+             xlat_latency_count_get(LATENCY_GPIO_TO_USB),
+             xlat_last_latency_us_get(LATENCY_GPIO_TO_USB),
+             xlat_latency_average_get(LATENCY_GPIO_TO_USB),
+             xlat_latency_standard_deviation_get(LATENCY_GPIO_TO_USB));
     vcp_writestr(buf);
 }
 
@@ -518,15 +518,27 @@ void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size, uint8_t itf_prot
     printf("Parsing HID descriptor with size: %d, itf_protocol: %d\n", desc_size, itf_protocol);
 
     // Only parse according to the current XLAT mode
-    switch (xlat_get_mode()) {
+    switch (xlat_mode_get()) {
         case XLAT_MODE_MOUSE_CLICK:
         case XLAT_MODE_MOUSE_MOTION:
-            if (itf_protocol != HID_ITF_PROTOCOL_MOUSE) {
+            // did we already find the mouse button mask?
+            if (*xlat_button_bits_get() > 0) {
+                printf("Mouse button mask already found, skipping this descriptor\n");
+                return;
+            }
+            if ((itf_protocol != HID_ITF_PROTOCOL_MOUSE) && (itf_protocol != HID_ITF_PROTOCOL_NONE)) {
+                printf("Protocol %d does not match selected XLAT mode (%d)\n", itf_protocol, HID_ITF_PROTOCOL_MOUSE);
                 return;
             }
             break;
         case XLAT_MODE_KEYBOARD:
-            rf (itf_protocol != HID_ITF_PROTOCOL_KEYBOARD) {
+            // did we already find the keyboard usage page?
+            if (xlat_keyboard_usage_page_found_get()) {
+                printf("Keyboard usage page already found, skipping this descriptor\n");
+                return;
+            }
+            if ((itf_protocol != HID_ITF_PROTOCOL_KEYBOARD) && (itf_protocol != HID_ITF_PROTOCOL_NONE)) {
+                printf("Protocol %d does not match selected XLAT mode (%d)\n", itf_protocol, HID_ITF_PROTOCOL_KEYBOARD);
                 return;
             }
             break;
@@ -542,17 +554,18 @@ void xlat_parse_hid_descriptor(uint8_t *desc, size_t desc_size, uint8_t itf_prot
 
     printf("Button mask: ");
     for (int i = 0; i < REPORT_LEN; i++) {
-        printf("%02x", xlat_get_button_mask()[i]);
-    }
-    printf("\n");
-    printf("Motion mask: ");
-    for (int i = 0; i < REPORT_LEN; i++) {
-        printf("%02x", xlat_get_motion_mask()[i]);
+        printf("%02x", xlat_button_mask_get()[i]);
     }
     printf("\n");
 
-    // Check if using reportIDs:
-    printf("Using report ID: %d\n", xlat_get_report_id());
+    printf("Motion mask: ");
+    for (int i = 0; i < REPORT_LEN; i++) {
+        printf("%02x", xlat_motion_mask_get()[i]);
+    }
+    printf("\n");
+
+    printf("Keyboard found: %d\n", xlat_keyboard_usage_page_found_get());
+    printf("Using report ID: %d\n", xlat_report_id_get());
 }
 
 void xlat_clear_device_info(void)
@@ -560,19 +573,19 @@ void xlat_clear_device_info(void)
     // Clear offsets
     xlat_clear_locations();
     // Send a message to the gfx thread, to refresh the device info
-    gfx_send_event(GFX_EVENT_DEVICE_DISCONNECTED, 0);
+    gfx_event_send(GFX_EVENT_DEVICE_DISCONNECTED, 0);
 }
 
 void xlat_clear_locations(void)
 {
     printf("Clearing locations\n");
     memset(prev_report, 0, sizeof(prev_report));
-    memset(xlat_get_button_mask(), 0, REPORT_LEN);
-    memset(xlat_get_motion_mask(), 0, REPORT_LEN);
-    *(xlat_get_button_bits()) = 0;
-    *(xlat_get_motion_bits()) = 0;
-    xlat_set_report_id(0);
-    xlat_set_keyboard_usage_page_found(false);
+    memset(xlat_button_mask_get(), 0, REPORT_LEN);
+    memset(xlat_motion_mask_get(), 0, REPORT_LEN);
+    *(xlat_button_bits_get()) = 0;
+    *(xlat_motion_bits_get()) = 0;
+    xlat_report_id_set(0);
+    xlat_keyboard_usage_page_found_set(false);
 }
 
 void xlat_init(void)

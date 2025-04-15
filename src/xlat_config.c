@@ -46,12 +46,12 @@ bool keyboard_usage_page_found = false;
 static uint32_t gpio_irq_holdoff_us = GPIO_IRQ_HOLDOFF_US;
 
 // Mode configuration
-void xlat_set_mode(enum xlat_mode mode)
+void xlat_mode_set(enum xlat_mode mode)
 {
     current_mode = mode;
 }
 
-enum xlat_mode xlat_get_mode(void)
+enum xlat_mode xlat_mode_get(void)
 {
     return current_mode;
 }
@@ -68,7 +68,7 @@ bool xlat_auto_trigger_level_is_high(void)
 }
 
 // Auto-trigger interval configuration
-void xlat_auto_trigger_interval_set(uint32_t ms)
+void xlat_auto_trigger_interval_ms_set(uint32_t ms)
 {
     if (ms < 100) {
         ms = 100;
@@ -78,7 +78,7 @@ void xlat_auto_trigger_interval_set(uint32_t ms)
     auto_trigger_interval_ms = ms;
 }
 
-uint32_t xlat_auto_trigger_interval_get(void)
+uint32_t xlat_auto_trigger_interval_ms_get(void)
 {
     return auto_trigger_interval_ms;
 }
@@ -98,52 +98,52 @@ uint8_t xlat_auto_trigger_output_get(void)
 } 
 
 
-void xlat_set_gpio_irq_holdoff_us(uint32_t us)
+void xlat_gpio_irq_holdoff_us_set(uint32_t us)
 {
     gpio_irq_holdoff_us = us;
 }
 
 
-uint32_t xlat_get_gpio_irq_holdoff_us(void)
+uint32_t xlat_gpio_irq_holdoff_us_get(void)
 {
     return gpio_irq_holdoff_us;
 }
 
-uint16_t * xlat_get_button_bits(void)
+uint16_t * xlat_button_bits_get(void)
 {
     return &button_bits;
 }
 
-uint16_t * xlat_get_motion_bits(void)
+uint16_t * xlat_motion_bits_get(void)
 {
     return &motion_bits;
 }
 
-uint8_t * xlat_get_button_mask(void)
+uint8_t * xlat_button_mask_get(void)
 {
     return button_mask;
 }
 
-uint8_t * xlat_get_motion_mask(void)
+uint8_t * xlat_motion_mask_get(void)
 {
     return motion_mask;
 }
-uint8_t xlat_get_report_id(void)
+uint8_t xlat_report_id_get(void)
 {
     return report_id;
 }
 
-void xlat_set_report_id(uint8_t id)
+void xlat_report_id_set(uint8_t id)
 {
     report_id = id;
 }
 
-bool xlat_get_keyboard_usage_page_found(void)
+bool xlat_keyboard_usage_page_found_get(void)
 {
     return keyboard_usage_page_found;
 }
 
-void xlat_set_keyboard_usage_page_found(bool found)
+void xlat_keyboard_usage_page_found_set(bool found)
 {
     keyboard_usage_page_found = found;
 }
