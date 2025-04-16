@@ -74,10 +74,11 @@ static void event_handler(lv_event_t* e)
             uint32_t val = 100;
             switch (sel) {
                 case 0: val = 20; break;
-                case 1: val = 100; break;
-                case 2: val = 200; break;
-                case 3: val = 500; break;
-                case 4: val = 1000; break;
+                case 1: val = 50; break;
+                case 2: val = 100; break;
+                case 3: val = 200; break;
+                case 4: val = 500; break;
+                case 5: val = 1000; break;
                 default: break;
             }
             xlat_gpio_irq_holdoff_us_set(val * 1000);
@@ -171,7 +172,7 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     lv_obj_align_to(debounce_label, edge_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
     debounce_dropdown = lv_dropdown_create(tab_detection);
-    lv_dropdown_set_options(debounce_dropdown, "20ms\n100ms\n200ms\n500ms\n1000ms");
+    lv_dropdown_set_options(debounce_dropdown, "20ms\n50ms\n100ms\n200ms\n500ms\n1000ms");
     lv_obj_set_width(debounce_dropdown, DROPDOWN_WIDTH);
     lv_obj_align_to(debounce_dropdown, debounce_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
     lv_obj_add_event_cb(debounce_dropdown, event_handler, LV_EVENT_VALUE_CHANGED, NULL);
@@ -256,10 +257,11 @@ void gfx_settings_create_page(lv_obj_t *previous_screen)
     uint16_t debounce_index = 0;
     switch (debounce_time) {
         case 20: debounce_index = 0; break;
-        case 100: debounce_index = 1; break;
-        case 200: debounce_index = 2; break;
-        case 500: debounce_index = 3; break;
-        case 1000: debounce_index = 4; break;
+        case 50: debounce_index = 1; break;
+        case 100: debounce_index = 2; break;
+        case 200: debounce_index = 3; break;
+        case 500: debounce_index = 4; break;
+        case 1000: debounce_index = 5; break;
         default: break;
     }
     lv_dropdown_set_selected(debounce_dropdown, debounce_index);
