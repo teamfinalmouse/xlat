@@ -12,34 +12,34 @@
 
 # Table of Contents
 
-- [-Introduction](#-introduction)
-- [-Reason for creating XLAT](#-reason-for-creating-xlat)
-- [-Required hardware](#-required-hardware)
-- [-Setup Procedure](#-setup-procedure)
+- [Introduction](#introduction)
+- [Reason for creating XLAT](#reason-for-creating-xlat)
+- [Required hardware](#required-hardware)
+- [Setup Procedure](#setup-procedure)
    * [1. Power Supply:](#1-power-supply)
    * [2. USB Connection: ](#2-usb-connection)
    * [3. Special Cable Connection:](#3-special-cable-connection)
    * [4. Device Recognition:](#4-device-recognition)
-- [-Accuracy of XLAT](#-accuracy-of-xlat)
-- [-How XLAT Measures Click Latency](#-how-xlat-measures-click-latency)
+- [Accuracy of XLAT](#accuracy-of-xlat)
+- [How XLAT Measures Click Latency](#how-xlat-measures-click-latency)
 - [User Interface](#user-interface)
 - [Measurement Procedure](#measurement-procedure)
    * [1. Initiate Measurement:](#1-initiate-measurement)
    * [2. Analyze Results:](#2-analyze-results)
    * [3. Resetting and Re-testing:](#3-resetting-and-re-testing)
 - [Troubleshooting](#troubleshooting)
-- [-Support](#-support)
+- [Support](#support)
 - [License](#license)
 - [Conclusion](#conclusion)
 
-## 🙋‍♂️ Introduction
+## Introduction
 The XLAT Mouse Latency Measurement Tool by Finalmouse is engineered to accurately measure the latency of wired and wireless mice. This manual provides a step-by-step guide on how to set up and use this tool.
 
 XLAT overview video:<br/>
 [![XLAT overview video](http://img.youtube.com/vi/RyWXZj3j_xU/0.jpg)](http://www.youtube.com/watch?v=RyWXZj3j_xU "XLAT overview")
 
 
-## 🤔 Reason for creating XLAT
+## Reason for creating XLAT
 The inception of the XLAT Mouse Latency Measurement Tool stemmed from a need to address the shortcomings of existing latency measurement methodologies, particularly concerning mouse latency. Here are the key motivators behind the creation of XLAT:
 
 1. **Specific Focus on Mouse Latency**:
@@ -60,14 +60,14 @@ The inception of the XLAT Mouse Latency Measurement Tool stemmed from a need to 
 XLAT was developed to fill these gaps, providing a specialized, accessible, and cost-effective solution for accurately measuring mouse latency, making it an invaluable tool for both enthusiasts and professionals alike.
 
 
-## 💻 Required hardware
+## Required hardware
 Ensure you have at least the following hardware available:
 1. Finalmouse XLAT or STM32F746G-DISCO devkit
 2. Micro-USB to USB-A Adapter
 3. Mini-USB Cable
 4. The USB mouse you want to test
 
-## 📗 Setup Procedure
+## Setup Procedure
 ### 1. Power Supply:
    - Connect the mini-USB cable to the XLAT device and a power source to supply power to the XLAT device.
 
@@ -83,11 +83,11 @@ Ensure you have at least the following hardware available:
 ### 4. Device Recognition:
    - Upon successful connection of the mouse via USB, the XLAT tool should display the device name along with the VID:PID (Vendor ID: Product ID) in the top right corner of the screen.
 
-## 🎯 Accuracy of XLAT
+## Accuracy of XLAT
 XLAT boasts a high degree of accuracy in its measurements, due to the firmware running on an onboard microcontroller. This low-level, lightweight design ensures highly accurate and reliable measurements.
 The firmware is open source, and it's contained in the git repository you're looking at right now.
 
-## 🤫 How XLAT Measures Click Latency
+## How XLAT Measures Click Latency
 XLAT measures click latency by accurately measuring the time between the mouse button click (measured electrically) and the corresponding USB packet coming in, sent by the mouse, which contains the button click data. This measurement is reported in microseconds (µs).
 
 ##  User Interface
@@ -111,7 +111,35 @@ XLAT measures click latency by accurately measuring the time between the mouse b
 - **LCD Issues**:
     - If the LCD doesn't properly initialize or contains artifacts, reboot the device by pressing the "REBOOT" button or power cycling the XLAT device.
 
-## 💁 Support
+- **Mouse / USB device not detected**:
+
+    1. **Try the latest firmware**: Build and flash the latest version from the `main` branch. Support for new devices is added regularly.
+
+    2. **Collect USB descriptors**: If updating doesn't help, we'll need the USB and USB-HID descriptors for your device to add support.
+
+       **Linux**:
+       - Plug in the device and run `lsusb` to find the VID:PID (e.g. `1234:5678`).
+       - Get the full USB descriptor: `lsusb -v -d 1234:5678`
+       - Get the HID report descriptor (replace the device path as needed):
+         ```
+         sudo cat /sys/bus/usb/devices/<bus>-<port>:1.0/0003:1234:5678.*/report_descriptor | xxd
+         ```
+         Alternatively, if you have `usbhid-dump` installed:
+         ```
+         sudo usbhid-dump -d 1234:5678
+         ```
+
+       **Windows**:
+       - Download and run [USBTreeView](https://www.uwe-sieber.de/usbtreeview_e.html) or [USBDeview](https://www.nirsoft.net/utils/usb_devices_view.html).
+       - Find your device in the tree, right-click it, and copy the device descriptor information.
+       - For HID report descriptors, use [Wireshark](https://www.wireshark.org/) with USBPcap, or use [usbhid-dump](https://github.com/DIGImend/usbhid-dump) under WSL.
+
+    3. **Open a GitHub issue**: File an issue at the [XLAT GitHub repository](https://github.com/teamfinalmouse/xlat/issues) and include:
+       - Your device name and model
+       - The full USB descriptor output
+       - The HID report descriptor output
+
+## Support
 For further assistance or inquiries, contact Finalmouse support via email at support@finalmouse.com or on Discord.
 
 ## License
