@@ -145,9 +145,22 @@ static void auto_trigger_clear_timer(void)
     }
 }
 
+// Busy-wait a random 0..999 us before each GPIO edge toggle so the edge
+// phase is uniform vs the USB SOF — works for both speeds:
+//   - HS (125 us microframe): 1000 = 8 * 125, so delay_us mod 125 is
+//     uniform 0..124 -> uniform phase vs HS SOF.
+//   - FS (1 ms frame): delay_us is already uniform across the full frame.
+static void auto_trigger_desync_sof(void)
+{
+    uint32_t delay_us = rand() % 1000;
+    uint32_t t0 = xlat_counter_1mhz_get();
+    while ((xlat_counter_1mhz_get() - t0) < delay_us) { /* spin */ }
+}
+
 void auto_trigger_turn_off_callback(lv_timer_t * timer)
 {
     (void)timer;
+    auto_trigger_desync_sof();
     xlat_auto_trigger_turn_off_action();
 }
 
@@ -156,6 +169,7 @@ void auto_trigger_callback(lv_timer_t * timer)
     char label[20];
     size_t * count = timer->user_data;
 
+    auto_trigger_desync_sof();
     xlat_auto_trigger_action();
     trigger_timer_turn_off = lv_timer_create(auto_trigger_turn_off_callback, AUTO_TRIGGER_PRESSED_PERIOD_MS, NULL);
     lv_timer_set_repeat_count(trigger_timer_turn_off, 1);

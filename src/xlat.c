@@ -486,13 +486,6 @@ static void xlat_timer_callback(TimerHandle_t xTimer)
 
 void xlat_auto_trigger_action(void)
 {
-    // random delay, such that we do not always perfectly align with USB timing
-    srand(xTaskGetTickCount());
-    int val = rand() & 0xFFF;
-    for (volatile int i = 0; i < val; i++) {
-        __NOP();
-    }
-
     if (xlat_auto_trigger_output_get() == 6) {
         HAL_GPIO_WritePin(ARDUINO_D6_GPIO_Port, ARDUINO_D6_Pin, xlat_auto_trigger_level_is_high() ? GPIO_PIN_SET : GPIO_PIN_RESET);
     } else {
