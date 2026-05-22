@@ -134,6 +134,20 @@ void usb_host_task(void const *param) {
     vTaskSuspend(NULL);
   }
 
+  // Force a clean port re-detect: if a device was already attached at MCU
+  // reset, the CONN_DETECT edge happens before the host stack is ready and
+  // enumeration can stall after SET_ADDRESS (no mount callback fires).
+  // Toggle HPRT_PPWR off/on so the device pull-up is re-seen as a fresh attach.
+  {
+    const uint32_t w1c = USB_OTG_HPRT_PENA | USB_OTG_HPRT_PCDET |
+                         USB_OTG_HPRT_PENCHNG | USB_OTG_HPRT_POCCHNG;
+    volatile uint32_t *hprt = (volatile uint32_t *)
+        ((uint32_t)USB_OTG_HS + USB_OTG_HOST_PORT_BASE);
+    *hprt = (*hprt & ~w1c) & ~USB_OTG_HPRT_PPWR; // power off port
+    osDelay(50);
+    *hprt = (*hprt & ~w1c) | USB_OTG_HPRT_PPWR;  // power on -> re-attach event
+  }
+
 #if CFG_TUH_ENABLED && CFG_TUH_MAX3421
   // FeatherWing MAX3421E use MAX3421E's GPIO0 for VBUS enable
   enum { IOPINS1_ADDR  = 20u << 3, /* 0xA0 */ };

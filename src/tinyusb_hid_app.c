@@ -89,7 +89,9 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
   xlat_usb_event_callback(usb_hid_rx_timestamp, report, len, itf_protocol); // Call to XLAT module
 
   // continue to request to receive report (new IN token on interrupt endpoint)
-  if (!tuh_hid_receive_report(dev_addr, instance)) {
+  // Skip re-arm if device already unmounted — avoids race where a stale xfer-complete
+  // is dispatched after device removal, which would assert in hcd_edpt_xfer.
+  if (tuh_mounted(dev_addr) && !tuh_hid_receive_report(dev_addr, instance)) {
     printf("Error: cannot request to receive report\n");
   }
 
