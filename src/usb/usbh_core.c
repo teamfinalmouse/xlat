@@ -706,12 +706,31 @@ USBH_StatusTypeDef USBH_Process(USBH_HandleTypeDef *phost)
       {
         phost->pActiveClass = NULL;
 
-        for (idx = 0U; idx < USBH_MAX_NUM_SUPPORTED_CLASS; idx++)
+        /* Log interface classes for debugging composite devices */
+        USBH_UsrLog("Device has %u interface(s):", phost->device.CfgDesc.bNumInterfaces);
+        for (uint8_t itf = 0U; itf < phost->device.CfgDesc.bNumInterfaces; itf++)
         {
-          if (phost->pClass[idx]->ClassCode == phost->device.CfgDesc.Itf_Desc[0].bInterfaceClass)
+          USBH_UsrLog("  itf %u: class=0x%02x subclass=0x%02x protocol=0x%02x",
+                      itf,
+                      phost->device.CfgDesc.Itf_Desc[itf].bInterfaceClass,
+                      phost->device.CfgDesc.Itf_Desc[itf].bInterfaceSubClass,
+                      phost->device.CfgDesc.Itf_Desc[itf].bInterfaceProtocol);
+        }
+
+        /* Scan ALL interfaces (not just itf 0) for a registered class match.
+         * Composite devices (e.g. gaming mice with vendor-specific itf 0)
+         * would otherwise be rejected. */
+        for (uint8_t itf = 0U;
+             itf < phost->device.CfgDesc.bNumInterfaces && phost->pActiveClass == NULL;
+             itf++)
+        {
+          for (idx = 0U; idx < USBH_MAX_NUM_SUPPORTED_CLASS; idx++)
           {
-            phost->pActiveClass = phost->pClass[idx];
-            break;
+            if (phost->pClass[idx]->ClassCode == phost->device.CfgDesc.Itf_Desc[itf].bInterfaceClass)
+            {
+              phost->pActiveClass = phost->pClass[idx];
+              break;
+            }
           }
         }
 

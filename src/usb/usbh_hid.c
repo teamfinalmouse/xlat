@@ -525,7 +525,7 @@ USBH_StatusTypeDef USBH_HID_SetIdle(USBH_HandleTypeDef *phost,
     phost->Control.setup.b.bRequest = USB_HID_SET_IDLE;
     phost->Control.setup.b.wValue.w = (uint16_t)(((uint32_t)duration << 8U) | (uint32_t)reportId);
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = 0U;
 
     return USBH_CtlReq(phost, NULL, 0U);
@@ -556,7 +556,7 @@ USBH_StatusTypeDef USBH_HID_SetReport(USBH_HandleTypeDef *phost,
     phost->Control.setup.b.bRequest = USB_HID_SET_REPORT;
     phost->Control.setup.b.wValue.w = (uint16_t)(((uint32_t)reportType << 8U) | (uint32_t)reportId);
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = reportLen;
 
     return USBH_CtlReq(phost, reportBuff, (uint16_t)reportLen);
@@ -587,7 +587,7 @@ USBH_StatusTypeDef USBH_HID_GetReport(USBH_HandleTypeDef *phost,
     phost->Control.setup.b.bRequest = USB_HID_GET_REPORT;
     phost->Control.setup.b.wValue.w = (uint16_t)(((uint32_t)reportType << 8U) | (uint32_t)reportId);
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = reportLen;
 
     return USBH_CtlReq(phost, reportBuff, (uint16_t)reportLen);
@@ -613,7 +613,7 @@ USBH_StatusTypeDef USBH_HID_SetProtocol(USBH_HandleTypeDef *phost,
         phost->Control.setup.b.wValue.w = 1U;
     }
 
-    phost->Control.setup.b.wIndex.w = 0U;
+    phost->Control.setup.b.wIndex.w = phost->device.current_interface;
     phost->Control.setup.b.wLength.w = 0U;
 
     return USBH_CtlReq(phost, NULL, 0U);
